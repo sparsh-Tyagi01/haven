@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL 16 ──────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: haven-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: haven
+      POSTGRES_PASSWORD: haven
+      POSTGRES_DB: haven_dev
+    volumes:
+      - haven_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U haven -d haven_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 ────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: haven-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - haven_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── OpenSearch 2 (single-node) ─────────────────
+  opensearch:
+    image: opensearchproject/opensearch:2.17.0
+    container_name: haven-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - haven_opensearch:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # ── MinIO (S3-compatible storage) ──────────────
+  minio:
+    image: minio/minio:latest
+    container_name: haven-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - haven_minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  haven_pgdata:
+  haven_redis:
+  haven_opensearch:
+  haven_minio:

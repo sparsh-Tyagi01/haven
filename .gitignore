@@ -1,1 +1,39 @@
+# ── Environment files ─────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+backend/.env
+frontend/.env.local
+
+# ── Go backend ────────────────────────────────────
+backend/bin/
+backend/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# ── Node / Next.js ────────────────────────────────
+node_modules/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Docker ────────────────────────────────────────
+docker-compose.override.yml
+
+# ── OS files ──────────────────────────────────────
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ── IDE ───────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace

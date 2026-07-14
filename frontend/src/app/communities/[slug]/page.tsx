@@ -11,6 +11,9 @@ import {
   type Membership,
 } from "../../../hooks/useCommunities";
 import { useCommunityFeed, type Post } from "../../../hooks/usePosts";
+import { useWikiPages, type WikiPage } from "../../../hooks/useWiki";
+import { useProjects, type Project } from "../../../hooks/useProjects";
+import { useEvents, rsvpEvent, type Event as CommunityEvent } from "../../../hooks/useEvents";
 
 export default function CommunityDetailPage({
   params,
@@ -27,6 +30,22 @@ export default function CommunityDetailPage({
   const [postTypeFilter, setPostTypeFilter] = useState("");
 
   const { data: feedData, loading: feedLoading } = useCommunityFeed(resolvedParams.slug, postTypeFilter);
+  const { pages: wikiPages, loading: wikiLoading } = useWikiPages(resolvedParams.slug);
+  const { projects, loading: projectsLoading } = useProjects(resolvedParams.slug);
+  const { events: communityEvents, loading: eventsLoading, refetch: refetchEvents } = useEvents(resolvedParams.slug);
+
+  const handleRSVP = async (eventId: string, status: string) => {
+    if (!isAuthenticated) {
+      alert("Please sign in to RSVP.");
+      return;
+    }
+    try {
+      await rsvpEvent(eventId, status);
+      refetchEvents();
+    } catch (err: any) {
+      alert(err.message || "Failed to update RSVP");
+    }
+  };
 
   // Load members when community is available
   useEffect(() => {
@@ -218,16 +237,25 @@ export default function CommunityDetailPage({
                   <span style={styles.roleLabel}>
                     Your Role: <strong>{roleLabel(userMembership.role)}</strong>
                   </span>
-                  {userMembership.role !== "owner" && (
-                    <button
-                      onClick={handleLeave}
-                      disabled={actionLoading}
-                      className="btn btn-secondary"
-                      style={styles.actionBtn}
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                    <Link
+                      href={`/communities/${community.slug}/chat`}
+                      className="btn btn-primary"
+                      style={{ padding: "0.4rem 1rem", fontSize: "0.85rem", textDecoration: "none" }}
                     >
-                      {actionLoading ? "Leaving..." : "Leave Community"}
-                    </button>
-                  )}
+                      💬 Live Chat Room
+                    </Link>
+                    {userMembership.role !== "owner" && (
+                      <button
+                        onClick={handleLeave}
+                        disabled={actionLoading}
+                        className="btn btn-secondary"
+                        style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}
+                      >
+                        {actionLoading ? "Leaving..." : "Leave"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <button
@@ -334,18 +362,201 @@ export default function CommunityDetailPage({
               )}
             </div>
 
-            <div style={styles.comingSoonCard}>
-              <h3 style={styles.sectionHeader}>Knowledge Base</h3>
-              <p style={styles.comingSoonText}>
-                AI-synthesized wiki pages and community documentation will live here in Phase 5.
-              </p>
+            {/* Knowledge Base / Wiki Section */}
+            <div style={styles.wikiSection}>
+              <div style={styles.wikiSectionHeader}>
+                <h3 style={styles.sectionHeader}>Knowledge Base Wiki</h3>
+                {userMembership && (
+                  (userMembership.role === "owner" ||
+                   userMembership.role === "admin" ||
+                   userMembership.role === "moderator" ||
+                   userMembership.role === "expert") && (
+                    <Link
+                      href={`/communities/${community.slug}/wiki/create`}
+                      className="btn btn-primary"
+                      style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}
+                    >
+                      + Write Wiki Page
+                    </Link>
+                  )
+                )}
+              </div>
+
+              {/* Wiki Index List */}
+              {wikiLoading ? (
+                <p style={styles.loadingSmall}>Loading wiki index...</p>
+              ) : wikiPages && wikiPages.length > 0 ? (
+                <div style={styles.wikiList}>
+                  {wikiPages.map((page: WikiPage) => (
+                    <div key={page.id} style={styles.wikiItem}>
+                      <div style={styles.wikiBody}>
+                        <div style={styles.wikiTitleRow}>
+                          <Link
+                            href={`/communities/${community.slug}/wiki/${page.slug}`}
+                            style={styles.wikiLinkTitle}
+                          >
+                            📄 {page.title}
+                          </Link>
+                          <span style={styles.miniVersionBadge}>v{page.version}</span>
+                        </div>
+                        <div style={styles.wikiMeta}>
+                          <span>Modified {new Date(page.updated_at).toLocaleDateString()}</span>
+                          <span>·</span>
+                          <span>by <strong>@{page.creator_username}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={styles.noWikiCard}>
+                  <p>No wiki articles have been published on this server yet.</p>
+                </div>
+              )}
             </div>
 
-            <div style={styles.comingSoonCard}>
-              <h3 style={styles.sectionHeader}>Projects</h3>
-              <p style={styles.comingSoonText}>
-                Kanban boards and task management will be available in Phase 6.
-              </p>
+            {/* Projects / Kanban Section */}
+            <div style={styles.projectsSection}>
+              <div style={styles.projectsSectionHeader}>
+                <h3 style={styles.sectionHeader}>Kanban Projects</h3>
+                {userMembership && (
+                  (userMembership.role === "owner" ||
+                   userMembership.role === "admin" ||
+                   userMembership.role === "moderator") && (
+                    <Link
+                      href={`/communities/${community.slug}/projects/create`}
+                      className="btn btn-primary"
+                      style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}
+                    >
+                      + New Project Board
+                    </Link>
+                  )
+                )}
+              </div>
+
+              {/* Projects List */}
+              {projectsLoading ? (
+                <p style={styles.loadingSmall}>Loading project boards...</p>
+              ) : projects && projects.length > 0 ? (
+                <div style={styles.projectsList}>
+                  {projects.map((proj: Project) => (
+                    <div key={proj.id} style={styles.projectItem}>
+                      <div style={styles.projectBody}>
+                        <Link
+                          href={`/communities/${community.slug}/projects/${proj.id}`}
+                          style={styles.projectLinkTitle}
+                        >
+                          💼 {proj.name}
+                        </Link>
+                        {proj.description && (
+                          <p style={styles.projectDescriptionText}>{proj.description}</p>
+                        )}
+                        <span style={styles.projectMetaText}>
+                          Created {new Date(proj.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={styles.noProjectsCard}>
+                  <p>No project boards have been configured on this server yet.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Events / Meetups Section */}
+            <div style={styles.eventsSection}>
+              <div style={styles.eventsSectionHeader}>
+                <h3 style={styles.sectionHeader}>Events & Meetups</h3>
+                {userMembership && (
+                  (userMembership.role === "owner" ||
+                   userMembership.role === "admin" ||
+                   userMembership.role === "moderator") && (
+                    <Link
+                      href={`/communities/${community.slug}/events/create`}
+                      className="btn btn-primary"
+                      style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}
+                    >
+                      + Schedule Event
+                    </Link>
+                  )
+                )}
+              </div>
+
+              {/* Events List */}
+              {eventsLoading ? (
+                <p style={styles.loadingSmall}>Loading scheduled events...</p>
+              ) : communityEvents && communityEvents.length > 0 ? (
+                <div style={styles.eventsList}>
+                  {communityEvents.map((ev: CommunityEvent) => (
+                    <div key={ev.id} style={styles.eventItem}>
+                      <div style={styles.eventBody}>
+                        <div style={styles.eventHeaderRow}>
+                          <h4 style={styles.eventTitleText}>📅 {ev.title}</h4>
+                          <span style={styles.eventTimeBadge}>
+                            {new Date(ev.start_time).toLocaleDateString()} @{" "}
+                            {new Date(ev.start_time).toLocaleTimeString(undefined, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+
+                        {ev.description && (
+                          <p style={styles.eventDescriptionText}>{ev.description}</p>
+                        )}
+
+                        {ev.location && (
+                          <p style={styles.eventLocationText}>
+                            📍 Location:{" "}
+                            {ev.location.startsWith("http") ? (
+                              <a href={ev.location} target="_blank" rel="noopener noreferrer" style={styles.eventLink}>
+                                Join Stream Room
+                              </a>
+                            ) : (
+                              ev.location
+                            )}
+                          </p>
+                        )}
+
+                        {/* RSVP Action Bar */}
+                        <div style={styles.rsvpRow}>
+                          <div style={styles.rsvpStats}>
+                            <span>Going: <strong>{ev.going_count}</strong></span>
+                            <span>Interested: <strong>{ev.interested_count}</strong></span>
+                          </div>
+
+                          <div style={styles.rsvpActions}>
+                            <button
+                              onClick={() => handleRSVP(ev.id, ev.user_rsvp_status === "going" ? "" : "going")}
+                              style={{
+                                ...styles.rsvpBtn,
+                                ...(ev.user_rsvp_status === "going" ? styles.rsvpBtnActive : {}),
+                              }}
+                            >
+                              Going
+                            </button>
+                            <button
+                              onClick={() => handleRSVP(ev.id, ev.user_rsvp_status === "interested" ? "" : "interested")}
+                              style={{
+                                ...styles.rsvpBtn,
+                                ...(ev.user_rsvp_status === "interested" ? styles.rsvpBtnActive : {}),
+                              }}
+                            >
+                              Interested
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={styles.noEventsCard}>
+                  <p>No upcoming meetups or hackathons scheduled yet.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -839,6 +1050,236 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   noPostsCard: {
     padding: "3rem",
+    border: "1px dashed var(--border-color)",
+    textAlign: "center",
+    color: "var(--text-light)",
+  },
+  // Phase 4: Wiki index styles
+  wikiSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.25rem",
+    marginBottom: "2rem",
+    borderTop: "1px solid var(--border-color)",
+    paddingTop: "2rem",
+    marginTop: "2rem",
+  },
+  wikiSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  wikiList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  },
+  wikiItem: {
+    padding: "1rem 1.25rem",
+    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-surface)",
+  },
+  wikiBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem",
+  },
+  wikiTitleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "1rem",
+  },
+  wikiLinkTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "1.1rem",
+    fontWeight: 600,
+    color: "var(--text-main)",
+    textDecoration: "none",
+  },
+  miniVersionBadge: {
+    fontSize: "0.65rem",
+    fontWeight: 600,
+    padding: "0.15rem 0.4rem",
+    backgroundColor: "var(--primary-light)",
+    color: "var(--primary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "2px",
+    textTransform: "uppercase",
+  },
+  wikiMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.75rem",
+    color: "var(--text-light)",
+  },
+  noWikiCard: {
+    padding: "2.5rem",
+    border: "1px dashed var(--border-color)",
+    textAlign: "center",
+    color: "var(--text-light)",
+  },
+  // Phase 5: Projects / Kanban list styles
+  projectsSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.25rem",
+    marginBottom: "2rem",
+    borderTop: "1px solid var(--border-color)",
+    paddingTop: "2rem",
+    marginTop: "2rem",
+  },
+  projectsSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  projectsList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  },
+  projectItem: {
+    padding: "1rem 1.25rem",
+    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-surface)",
+  },
+  projectBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem",
+  },
+  projectLinkTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "1.1rem",
+    fontWeight: 600,
+    color: "var(--text-main)",
+    textDecoration: "none",
+  },
+  projectDescriptionText: {
+    fontSize: "0.85rem",
+    color: "var(--text-muted)",
+    margin: 0,
+  },
+  projectMetaText: {
+    fontSize: "0.75rem",
+    color: "var(--text-light)",
+  },
+  noProjectsCard: {
+    padding: "2.5rem",
+    border: "1px dashed var(--border-color)",
+    textAlign: "center",
+    color: "var(--text-light)",
+  },
+  // Phase 6: Events & RSVP styles
+  eventsSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.25rem",
+    marginBottom: "2rem",
+    borderTop: "1px solid var(--border-color)",
+    paddingTop: "2rem",
+    marginTop: "2rem",
+  },
+  eventsSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  eventsList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
+  },
+  eventItem: {
+    padding: "1.25rem",
+    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-surface)",
+  },
+  eventBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.5rem",
+  },
+  eventHeaderRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    gap: "1rem",
+  },
+  eventTitleText: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "1.15rem",
+    fontWeight: 600,
+    margin: 0,
+    color: "var(--text-main)",
+  },
+  eventTimeBadge: {
+    fontSize: "0.75rem",
+    fontFamily: "var(--font-mono)",
+    backgroundColor: "var(--primary-light)",
+    color: "var(--primary)",
+    border: "1px solid var(--border-color)",
+    padding: "0.15rem 0.4rem",
+    borderRadius: "2px",
+  },
+  eventDescriptionText: {
+    fontSize: "0.9rem",
+    lineHeight: 1.5,
+    margin: 0,
+    color: "var(--text-muted)",
+  },
+  eventLocationText: {
+    fontSize: "0.85rem",
+    margin: 0,
+    color: "var(--text-light)",
+  },
+  eventLink: {
+    color: "var(--primary)",
+    fontWeight: 600,
+    textDecoration: "underline",
+  },
+  rsvpRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTop: "1px dashed var(--border-light)",
+    paddingTop: "0.75rem",
+    marginTop: "0.25rem",
+    flexWrap: "wrap",
+    gap: "0.75rem",
+  },
+  rsvpStats: {
+    display: "flex",
+    gap: "1rem",
+    fontSize: "0.75rem",
+    color: "var(--text-light)",
+  },
+  rsvpActions: {
+    display: "flex",
+    gap: "0.5rem",
+  },
+  rsvpBtn: {
+    padding: "0.25rem 0.75rem",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    border: "1px solid var(--border-color)",
+    borderRadius: "2px",
+    backgroundColor: "var(--bg-surface)",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    fontFamily: "var(--font-sans)",
+  },
+  rsvpBtnActive: {
+    backgroundColor: "var(--primary)",
+    color: "var(--bg-surface)",
+    borderColor: "var(--primary)",
+  },
+  noEventsCard: {
+    padding: "2.5rem",
     border: "1px dashed var(--border-color)",
     textAlign: "center",
     color: "var(--text-light)",

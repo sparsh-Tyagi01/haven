@@ -114,9 +114,17 @@ export default function HomePage() {
                       ) : (
                         <span style={styles.noSkillsText}>No skills documented yet.</span>
                       )}
-                    </div>
                   </div>
                 </div>
+              </div>
+
+              <Link
+                href="/messages"
+                  className="btn btn-primary"
+                  style={{ width: "100%", textAlign: "center", marginBottom: "0.75rem", textDecoration: "none", display: "block" }}
+                >
+                  ✉️ Direct Messages Inbox
+                </Link>
 
                 <button onClick={logout} className="btn btn-secondary" style={styles.logoutBtn}>
                   Revoke Session

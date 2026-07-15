@@ -24,6 +24,8 @@ export interface Post {
   funny_count: number;
   insightful_count: number;
   user_vote_type?: string;
+  moderation_status?: string;
+  moderation_reason?: string;
 }
 
 export interface Comment {
@@ -42,6 +44,8 @@ export interface Comment {
   funny_count: number;
   insightful_count: number;
   user_vote_type?: string;
+  moderation_status?: string;
+  moderation_reason?: string;
 }
 
 export interface FeedResponse {

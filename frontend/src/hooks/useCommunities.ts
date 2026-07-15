@@ -33,6 +33,7 @@ export interface Membership {
   user_id: string;
   community_id: string;
   role: string;
+  reputation?: number;
   joined_at: string;
   username?: string;
   display_name?: string;

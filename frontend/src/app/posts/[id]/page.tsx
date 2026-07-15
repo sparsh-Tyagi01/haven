@@ -15,6 +15,7 @@ import {
   type Comment,
 } from "../../../hooks/usePosts";
 import { fetchMembers, type Membership } from "../../../hooks/useCommunities";
+import { usePostSummary, generateWikiDraft } from "../../../hooks/useAI";
 
 interface CommentNode extends Comment {
   replies: CommentNode[];
@@ -30,14 +31,55 @@ export default function PostDetailPage({
   const { user, isAuthenticated } = useAuth();
   const { post, loading: postLoading, error: postError, refetch: refetchPost } = usePost(resolvedParams.id);
   const { comments, loading: commentsLoading, refetch: refetchComments } = usePostComments(resolvedParams.id);
+  const { summary, loading: summaryLoading, error: summaryError, generateSummary } = usePostSummary(resolvedParams.id);
+
+  const roleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      owner: "Owner",
+      admin: "Admin",
+      moderator: "Moderator",
+      expert: "Verified Expert",
+      member: "Member",
+      guest: "Guest",
+    };
+    return labels[role] || role;
+  };
+
+  const roleColor = (role: string) => {
+    const colors: Record<string, string> = {
+      owner: "var(--accent)",
+      admin: "var(--primary)",
+      moderator: "#5e4a7a",
+      expert: "#2d6a6a",
+      member: "var(--text-muted)",
+      guest: "var(--text-light)",
+    };
+    return colors[role] || "var(--text-muted)";
+  };
 
   const [commentContent, setCommentContent] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  const handleProposeWiki = async () => {
+    if (!post) return;
+    try {
+      const res = await generateWikiDraft(post.id);
+      const searchParams = new URLSearchParams();
+      searchParams.set("title", res.title);
+      searchParams.set("content", res.content);
+      router.push(`/communities/${post.community_slug}/wiki/create?${searchParams.toString()}`);
+    } catch (err: any) {
+      alert(err.message || "Failed to generate AI wiki draft");
+    }
+  };
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
   const [communityMembers, setCommunityMembers] = useState<Membership[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  const authorMembership = post ? communityMembers.find((m) => m.user_id === post.author_id) : null;
+  const authorRep = authorMembership?.reputation;
 
   // Load community membership role to verify QA solving permissions
   useEffect(() => {
@@ -200,7 +242,7 @@ export default function PostDetailPage({
       >
         <div style={{
           ...styles.commentCard,
-          borderColor: isAcceptedSolution ? "var(--success)" : "var(--border-color)",
+          border: isAcceptedSolution ? "1px solid var(--success)" : "1px solid var(--border-color)",
           backgroundColor: isAcceptedSolution ? "rgba(60, 110, 71, 0.03)" : "var(--bg-surface)",
         }}>
           {isAcceptedSolution && (
@@ -222,8 +264,39 @@ export default function PostDetailPage({
                   (node.author_display_name || node.author_username || "?").charAt(0).toUpperCase()}
               </div>
               <div style={styles.authorMeta}>
-                <span style={styles.authorName}>{node.author_display_name || node.author_username}</span>
-                <span style={styles.authorUsername}>@{node.author_username}</span>
+                <span style={styles.authorName}>
+                  {node.author_display_name || node.author_username}
+                  {(() => {
+                    const cMem = communityMembers.find((m) => m.user_id === node.author_id);
+                    if (!cMem) return null;
+                    return (
+                      <span
+                        style={{
+                          fontSize: "0.6rem",
+                          marginLeft: "0.4rem",
+                          color: roleColor(cMem.role),
+                          border: `1px solid ${roleColor(cMem.role)}`,
+                          padding: "0.05rem 0.25rem",
+                          borderRadius: "2px",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          fontFamily: "var(--font-mono)",
+                        }}
+                      >
+                        {roleLabel(cMem.role)}
+                      </span>
+                    );
+                  })()}
+                </span>
+                <span style={styles.authorUsername}>
+                  @{node.author_username}
+                  {(() => {
+                    const cMem = communityMembers.find((m) => m.user_id === node.author_id);
+                    return cMem && cMem.reputation !== undefined && cMem.reputation > 0
+                      ? ` · 🏆 ${cMem.reputation}`
+                      : "";
+                  })()}
+                </span>
               </div>
             </div>
             <span style={styles.commentDate}>
@@ -369,6 +442,12 @@ export default function PostDetailPage({
             </div>
           )}
 
+          {post.moderation_status === "flagged" && (
+            <div style={styles.moderationBanner}>
+              ⚠️ <strong>Auto-Moderation Warning:</strong> This post has been flagged by AI for containing potential toxicity or spam.
+            </div>
+          )}
+
           <div style={styles.postMetaRow}>
             <span style={styles.typeBadge}>{postTypeLabel(post.post_type)}</span>
             <span style={styles.postDate}>
@@ -392,8 +471,30 @@ export default function PostDetailPage({
                 (post.author_display_name || post.author_username || "?").charAt(0).toUpperCase()}
             </div>
             <div>
-              <h4 style={styles.authorDisplayName}>{post.author_display_name || post.author_username}</h4>
-              <span style={styles.authorHandle}>@{post.author_username}</span>
+              <h4 style={styles.authorDisplayName}>
+                {post.author_display_name || post.author_username}
+                {authorMembership && (
+                  <span
+                    style={{
+                      fontSize: "0.7rem",
+                      marginLeft: "0.5rem",
+                      color: roleColor(authorMembership.role),
+                      border: `1px solid ${roleColor(authorMembership.role)}`,
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "3px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {roleLabel(authorMembership.role)}
+                  </span>
+                )}
+              </h4>
+              <span style={styles.authorHandle}>
+                @{post.author_username}
+                {authorRep !== undefined && authorRep > 0 && ` · 🏆 ${authorRep} reputation`}
+              </span>
             </div>
           </div>
 
@@ -414,6 +515,39 @@ export default function PostDetailPage({
                 </p>
               );
             })}
+          </div>
+
+          {/* AI Helper Desk */}
+          <div style={styles.aiHelperDesk}>
+            <div style={styles.aiDeskHeader}>
+              <h4 style={styles.aiDeskTitle}>🤖 Haven AI Workspace</h4>
+              <div style={styles.aiDeskActions}>
+                <button onClick={generateSummary} disabled={summaryLoading} style={styles.aiBtn}>
+                  {summaryLoading ? "Summarizing..." : summary ? "Regenerate Summary" : "Generate Summary"}
+                </button>
+                {userRole && (
+                  (userRole === "owner" ||
+                   userRole === "admin" ||
+                   userRole === "moderator" ||
+                   userRole === "expert") && (
+                    <button onClick={handleProposeWiki} style={styles.aiBtn}>
+                      ✍️ Draft Wiki Page
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {summaryError && <p style={styles.aiError}>{summaryError}</p>}
+            {summary && (
+              <div style={styles.aiSummaryContent}>
+                {summary.split("\n").map((line, idx) => (
+                  <p key={idx} style={{ margin: "0.25rem 0", fontSize: "0.85rem", lineHeight: 1.5 }}>
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Post Reactions */}
@@ -982,5 +1116,67 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   textCenter: {
     textAlign: "center",
+  },
+  // Phase 8: AI & Moderation styles
+  moderationBanner: {
+    backgroundColor: "#fffbeb",
+    border: "1px solid #d97706",
+    color: "#b45309",
+    padding: "0.75rem 1.25rem",
+    marginBottom: "1.25rem",
+    fontSize: "0.85rem",
+    lineHeight: 1.5,
+  },
+  aiHelperDesk: {
+    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-main)",
+    padding: "1.25rem",
+    marginBottom: "2rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  },
+  aiDeskHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "0.75rem",
+    borderBottom: "1px dashed var(--border-light)",
+    paddingBottom: "0.5rem",
+  },
+  aiDeskTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    margin: 0,
+    textTransform: "uppercase",
+    letterSpacing: "0.02em",
+  },
+  aiDeskActions: {
+    display: "flex",
+    gap: "0.5rem",
+  },
+  aiBtn: {
+    padding: "0.25rem 0.75rem",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    fontFamily: "var(--font-mono)",
+    backgroundColor: "var(--bg-surface)",
+    border: "1px solid var(--border-color)",
+    cursor: "pointer",
+    borderRadius: "2px",
+  },
+  aiError: {
+    color: "var(--error)",
+    fontSize: "0.8rem",
+    margin: 0,
+  },
+  aiSummaryContent: {
+    backgroundColor: "var(--bg-surface)",
+    padding: "0.75rem 1rem",
+    borderLeft: "2px solid var(--primary)",
+    maxHeight: "250px",
+    overflowY: "auto",
   },
 };

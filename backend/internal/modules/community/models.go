@@ -31,6 +31,7 @@ type Membership struct {
 	UserID      string    `json:"user_id"`
 	CommunityID string    `json:"community_id"`
 	Role        string    `json:"role"` // owner | admin | moderator | expert | member | guest
+	Reputation  int       `json:"reputation"`
 	JoinedAt    time.Time `json:"joined_at"`
 	// Enriched fields (populated by joins, not stored directly)
 	Username    string `json:"username,omitempty"`

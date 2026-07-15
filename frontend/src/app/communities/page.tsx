@@ -485,7 +485,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   categoryChipActive: {
     backgroundColor: "var(--primary)",
     color: "var(--bg-surface)",
-    borderColor: "var(--primary)",
+    border: "1px solid var(--primary)",
   },
   content: {
     flexGrow: 1,

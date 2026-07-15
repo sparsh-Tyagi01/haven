@@ -235,7 +235,7 @@ export default function CommunityDetailPage({
               userMembership ? (
                 <div style={styles.membershipInfo}>
                   <span style={styles.roleLabel}>
-                    Your Role: <strong>{roleLabel(userMembership.role)}</strong>
+                    Your Role: <strong>{roleLabel(userMembership.role)}</strong> {userMembership.reputation !== undefined && `(🏆 ${userMembership.reputation} Rep)`}
                   </span>
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                     <Link
@@ -244,6 +244,20 @@ export default function CommunityDetailPage({
                       style={{ padding: "0.4rem 1rem", fontSize: "0.85rem", textDecoration: "none" }}
                     >
                       💬 Live Chat Room
+                    </Link>
+                    <Link
+                      href={`/communities/${community.slug}/assistant`}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: "0.4rem 1rem",
+                        fontSize: "0.85rem",
+                        textDecoration: "none",
+                        backgroundColor: "var(--accent)",
+                        color: "white",
+                        border: "none",
+                      }}
+                    >
+                      🤖 AI Assistant
                     </Link>
                     {userMembership.role !== "owner" && (
                       <button
@@ -592,7 +606,7 @@ export default function CommunityDetailPage({
                           color: roleColor(m.role),
                         }}
                       >
-                        {roleLabel(m.role)}
+                        {roleLabel(m.role)} {m.reputation !== undefined && m.reputation > 0 && `· 🏆 ${m.reputation}`}
                       </span>
                     </div>
                   </div>
@@ -982,7 +996,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   feedFilterBtnActive: {
     backgroundColor: "var(--primary-light)",
     color: "var(--primary)",
-    borderColor: "var(--primary)",
+    border: "1px solid var(--primary)",
   },
   postsList: {
     display: "flex",
@@ -1276,7 +1290,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   rsvpBtnActive: {
     backgroundColor: "var(--primary)",
     color: "var(--bg-surface)",
-    borderColor: "var(--primary)",
+    border: "1px solid var(--primary)",
   },
   noEventsCard: {
     padding: "2.5rem",

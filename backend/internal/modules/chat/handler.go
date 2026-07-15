@@ -69,6 +69,7 @@ func (h *Handler) UpgradeWS(w http.ResponseWriter, r *http.Request) {
 		return []byte(h.cfg.JWTSecret), nil
 	})
 	if err != nil || !token.Valid {
+		log.Printf("[WS] JWT validation failed: %v", err)
 		http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
 		return
 	}
@@ -79,7 +80,7 @@ func (h *Handler) UpgradeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, ok := claims["userId"].(string)
+	userID, ok := claims["user_id"].(string)
 	if !ok || userID == "" {
 		http.Error(w, "Unauthorized: invalid user identifier", http.StatusUnauthorized)
 		return
@@ -340,7 +341,9 @@ func (h *Handler) ListDirectMessages(w http.ResponseWriter, r *http.Request) {
 // ── WebSocket Client Read/Write Pumps ───────────────
 
 func (c *Client) readPump(h *Handler) {
+	log.Printf("[WS client] Starting readPump for user %s", c.UserID)
 	defer func() {
+		log.Printf("[WS client] Exiting readPump for user %s", c.UserID)
 		h.Hub.unregister <- c
 		c.Conn.Close()
 		h.setUserPresence(c.UserID, "offline")
@@ -356,6 +359,7 @@ func (c *Client) readPump(h *Handler) {
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
+			log.Printf("[WS client] ReadMessage error for user %s: %v", c.UserID, err)
 			break
 		}
 

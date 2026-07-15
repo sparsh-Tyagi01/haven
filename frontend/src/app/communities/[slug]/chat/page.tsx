@@ -253,34 +253,73 @@ export default function CommunityChatPage({
                       This is the beginning of the #{selectedChannel.name} room.
                     </div>
                   ) : (
-                    messages.map((m) => (
-                      <div key={m.id} style={styles.messageRow}>
+                    messages.map((m) => {
+                      const isMe = m.sender_id === user?.id;
+                      return (
                         <div
+                          key={m.id}
                           style={{
-                            ...styles.messageAvatar,
-                            backgroundColor: stringToColor(m.sender_username),
-                            backgroundImage: m.sender_avatar_url ? `url(${m.sender_avatar_url})` : "none",
+                            ...styles.messageRow,
+                            flexDirection: isMe ? "row-reverse" : "row",
+                            alignSelf: isMe ? "flex-end" : "flex-start",
+                            maxWidth: "75%",
                           }}
                         >
-                          {!m.sender_avatar_url && m.sender_username.charAt(0).toUpperCase()}
-                        </div>
-                        <div style={styles.messageContentBlock}>
-                          <div style={styles.messageMetaRow}>
-                            <span style={styles.senderNameText}>
-                              {m.sender_display_name || m.sender_username}
-                            </span>
-                            <span style={styles.senderUserHandle}>@{m.sender_username}</span>
-                            <span style={styles.messageTimeText}>
-                              {new Date(m.created_at).toLocaleTimeString(undefined, {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
+                          <div
+                            style={{
+                              ...styles.messageAvatar,
+                              backgroundColor: stringToColor(m.sender_username),
+                              backgroundImage: m.sender_avatar_url ? `url(${m.sender_avatar_url})` : "none",
+                            }}
+                          >
+                            {!m.sender_avatar_url && m.sender_username.charAt(0).toUpperCase()}
                           </div>
-                          <p style={styles.messageBodyText}>{m.content}</p>
+                          <div
+                            style={{
+                              ...styles.messageContentBlock,
+                              alignItems: isMe ? "flex-end" : "flex-start",
+                            }}
+                          >
+                            <div
+                              style={{
+                                ...styles.messageMetaRow,
+                                flexDirection: isMe ? "row-reverse" : "row",
+                              }}
+                            >
+                              <span style={styles.senderNameText}>
+                                {m.sender_display_name || m.sender_username}
+                              </span>
+                              <span style={styles.senderUserHandle}>@{m.sender_username}</span>
+                              <span style={styles.messageTimeText}>
+                                {new Date(m.created_at).toLocaleTimeString(undefined, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                padding: "0.5rem 0.8rem",
+                                borderRadius: isMe ? "12px 0px 12px 12px" : "0px 12px 12px 12px",
+                                backgroundColor: isMe ? "var(--primary)" : "var(--bg-surface)",
+                                border: isMe ? "none" : "1px solid var(--border-color)",
+                                boxShadow: "var(--shadow-sm)",
+                              }}
+                            >
+                              <p
+                                style={{
+                                  ...styles.messageBodyText,
+                                  color: isMe ? "var(--bg-main)" : "var(--text-main)",
+                                  textAlign: isMe ? "left" : "left",
+                                }}
+                              >
+                                {m.content}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                   {typingUser && (
                     <div style={styles.typingIndicator}>
@@ -539,7 +578,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     textTransform: "uppercase",
   },
   addChannelBtn: {
-    background: "none",
+    backgroundColor: "transparent",
     border: "none",
     fontSize: "0.75rem",
     fontWeight: 700,
@@ -552,8 +591,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.35rem",
   },
   channelItemBtn: {
-    background: "none",
-    border: "none",
+    backgroundColor: "transparent",
+    borderTop: "none",
+    borderRight: "none",
+    borderBottom: "none",
+    borderLeft: "2px solid transparent",
     textAlign: "left",
     padding: "0.5rem 0.75rem",
     fontSize: "0.85rem",

@@ -16,6 +16,8 @@ type Post struct {
 	PostType          string    `json:"post_type"` // discussion | question | project | event | job
 	IsSolved          bool      `json:"is_solved"`
 	AcceptedCommentID *string   `json:"accepted_comment_id,omitempty"`
+	ModerationStatus  string    `json:"moderation_status,omitempty"`
+	ModerationReason  *string   `json:"moderation_reason,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 
@@ -40,9 +42,11 @@ type Comment struct {
 	PostID    string    `json:"post_id"`
 	ParentID  *string   `json:"parent_id,omitempty"`
 	AuthorID  string    `json:"author_id"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Content           string    `json:"content"`
+	ModerationStatus  string    `json:"moderation_status,omitempty"`
+	ModerationReason  *string   `json:"moderation_reason,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 
 	// Enriched fields
 	AuthorUsername    string `json:"author_username,omitempty"`

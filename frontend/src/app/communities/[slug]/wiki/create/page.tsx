@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../../../hooks/useAuth";
 import { useCommunity, fetchMembers } from "../../../../../hooks/useCommunities";
 import { createWikiPage } from "../../../../../hooks/useWiki";
 
-export default function CreateWikiPage({
+function CreateWikiPageContent({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { community, loading: communityLoading } = useCommunity(resolvedParams.slug);
 
@@ -23,6 +24,15 @@ export default function CreateWikiPage({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [userRole, setUserRole] = useState<string | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
+
+  // Pre-fill query params (e.g. from AI wiki draft)
+  useEffect(() => {
+    const preTitle = searchParams.get("title") || "";
+    const preContent = searchParams.get("content") || "";
+    if (preTitle || preContent) {
+      setForm({ title: preTitle, content: preContent });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!community || !user) {
@@ -445,3 +455,20 @@ const styles: { [key: string]: React.CSSProperties } = {
     textAlign: "center",
   },
 };
+
+export default function CreateWikiPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  return (
+    <Suspense fallback={
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner} />
+        <p style={styles.loadingText}>Loading Wiki Curation Workspace...</p>
+      </div>
+    }>
+      <CreateWikiPageContent params={params} />
+    </Suspense>
+  );
+}

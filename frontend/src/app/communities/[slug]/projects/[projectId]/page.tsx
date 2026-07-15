@@ -260,7 +260,7 @@ export default function ProjectBoardPage({
                             style={{
                               ...styles.priorityIndicator,
                               color: priorityColor(t.priority),
-                              borderColor: priorityColor(t.priority),
+                              border: `1px solid ${priorityColor(t.priority)}`,
                             }}
                           >
                             {t.priority}

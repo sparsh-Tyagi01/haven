@@ -529,7 +529,7 @@ func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.db.QueryContext(r.Context(),
-		`SELECT m.id, m.user_id, m.community_id, m.role, m.joined_at,
+		`SELECT m.id, m.user_id, m.community_id, m.role, m.joined_at, COALESCE(m.reputation, 0),
 		        u.username, u.display_name, u.avatar_url
 		 FROM memberships m
 		 JOIN users u ON u.id = m.user_id
@@ -557,7 +557,7 @@ func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var m Membership
 		if err := rows.Scan(
-			&m.ID, &m.UserID, &m.CommunityID, &m.Role, &m.JoinedAt,
+			&m.ID, &m.UserID, &m.CommunityID, &m.Role, &m.JoinedAt, &m.Reputation,
 			&m.Username, &m.DisplayName, &m.AvatarURL,
 		); err != nil {
 			log.Printf("error scanning member: %v", err)

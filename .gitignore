@@ -37,3 +37,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.code-workspace
+
+# ── Documentation ─────────────────────────────────
+docs/

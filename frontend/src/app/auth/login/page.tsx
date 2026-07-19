@@ -46,33 +46,34 @@ export default function LoginPage() {
 
   return (
     <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
+      <div style={styles.card}>
+        {/* Brand */}
         <div style={styles.brandSection}>
-          <h1 style={styles.brandTitle}>THE HAVEN</h1>
-          <p style={styles.brandSub}>No. 1 — A Noise-Free Knowledge Network</p>
+          <Link href="/" style={styles.brandLink}>
+            <span style={styles.brandIcon}>H</span>
+          </Link>
+          <h1 style={styles.title}>Welcome back</h1>
+          <p style={styles.subtitle}>Sign in to your Haven account</p>
         </div>
 
+        {/* Grid */}
         <div style={styles.gridContainer}>
-          {/* Left Column: Philosophical Editorial Context */}
+          {/* Left: Editorial context */}
           <div style={styles.editorialCol}>
-            <h2 style={styles.essayTitle}>On Collaborative Memory</h2>
-            <p style={styles.essayText}>
-              Haven is established on the belief that human knowledge should be organized cooperatively, rather than
-              distributed via individual engagement-bait algorithms.
+            <h2 style={styles.editorialTitle}>
+              Knowledge thrives in community
+            </h2>
+            <p style={styles.editorialText}>
+              Haven organizes knowledge around communities, not algorithms.
+              Every discussion contributes to a growing, permanent wiki that
+              makes your communities smarter over time.
             </p>
-            <p style={styles.essayText}>
-              By connecting inside focused communities (servers), members compile a permanent searchable wiki, maintain
-              transparent project progress, and interact in real-time without outrage feeds.
-            </p>
-            <div style={styles.divider}></div>
-            <span style={styles.dateStamp}>Est. 2026 — Verified Decentralized Workspace</span>
+            <div style={styles.divider} />
+            <span style={styles.stamp}>Est. 2026 — Haven Network</span>
           </div>
 
-          {/* Right Column: High-Fidelity Login Form */}
+          {/* Right: Login form */}
           <div style={styles.formCol}>
-            <h2 style={styles.formTitle}>Sign In</h2>
-            <p style={styles.formSub}>Welcome back. Please input your credentials below.</p>
-
             {error && (
               <div style={styles.errorAlert}>
                 <span style={styles.errorText}>{error}</span>
@@ -85,7 +86,7 @@ export default function LoginPage() {
                 <input
                   id="email"
                   type="email"
-                  placeholder="name@domain.com"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isSubmitting}
@@ -108,11 +109,11 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary btn-lg"
                 style={styles.submitBtn}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Authenticating..." : "Access Account"}
+                {isSubmitting ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
@@ -129,7 +130,6 @@ export default function LoginPage() {
   );
 }
 
-// Inline styles for extreme editorial high-fidelity aesthetics
 const styles: { [key: string]: React.CSSProperties } = {
   pageContainer: {
     minHeight: "100vh",
@@ -137,126 +137,124 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     justifyContent: "center",
     padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
+    backgroundColor: "var(--bg-primary)",
   },
-  editorialFrame: {
+  card: {
     width: "100%",
-    maxWidth: "960px",
+    maxWidth: "880px",
     backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-lg)",
     padding: "2.5rem",
     boxShadow: "var(--shadow-lg)",
-    position: "relative",
   },
   brandSection: {
     textAlign: "center",
-    borderBottom: "1px double var(--text-main)",
-    paddingBottom: "1.5rem",
     marginBottom: "2.5rem",
   },
-  brandTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "3.5rem",
-    fontWeight: 700,
-    letterSpacing: "-0.04em",
-    textTransform: "uppercase",
-    border: "none",
-    padding: 0,
-    margin: 0,
-    lineHeight: 1,
+  brandLink: {
+    display: "inline-block",
+    textDecoration: "none",
+    marginBottom: "1.25rem",
   },
-  brandSub: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.8rem",
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.15em",
-    color: "var(--text-muted)",
-    marginTop: "0.5rem",
+  brandIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "44px",
+    height: "44px",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    fontFamily: "var(--font-display)",
+    fontWeight: 700,
+    fontSize: "var(--text-xl)",
+  },
+  title: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    fontWeight: 700,
+    letterSpacing: "-0.02em",
+    marginBottom: "0.35rem",
+    border: "none",
+  },
+  subtitle: {
+    fontSize: "var(--text-base)",
+    color: "var(--text-tertiary)",
+    margin: 0,
   },
   gridContainer: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: "3rem",
+    gap: "2.5rem",
   },
   editorialCol: {
-    borderRight: "1px solid var(--border-color)",
+    borderRight: "1px solid var(--border-primary)",
     paddingRight: "2.5rem",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
-  essayTitle: {
+  editorialTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.5rem",
+    fontSize: "var(--text-xl)",
     fontWeight: 600,
     fontStyle: "italic",
-    marginBottom: "1.25rem",
-    color: "var(--text-main)",
-  },
-  essayText: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.92rem",
-    color: "var(--text-muted)",
-    lineHeight: 1.7,
     marginBottom: "1rem",
+    color: "var(--text-primary)",
+  },
+  editorialText: {
+    fontSize: "var(--text-base)",
+    color: "var(--text-secondary)",
+    lineHeight: 1.7,
+    margin: 0,
   },
   divider: {
     height: "1px",
-    backgroundColor: "var(--border-color)",
+    backgroundColor: "var(--border-primary)",
     margin: "1.5rem 0",
   },
-  dateStamp: {
+  stamp: {
     fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
     textTransform: "uppercase",
+    letterSpacing: "0.04em",
   },
   formCol: {
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
   },
-  formTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2rem",
-    fontWeight: 600,
-    marginBottom: "0.5rem",
-  },
-  formSub: {
-    fontSize: "0.95rem",
-    color: "var(--text-muted)",
-    marginBottom: "2rem",
-  },
   errorAlert: {
-    backgroundColor: "rgba(168, 61, 49, 0.08)",
-    borderLeft: "3px solid var(--error)",
-    padding: "0.75rem 1rem",
-    marginBottom: "1.5rem",
+    backgroundColor: "var(--color-error-light)",
+    borderLeft: "3px solid var(--color-error)",
+    padding: "0.65rem 1rem",
+    marginBottom: "1.25rem",
+    borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
   },
   errorText: {
-    fontSize: "0.85rem",
-    color: "var(--error)",
+    fontSize: "var(--text-sm)",
+    color: "var(--color-error)",
     fontWeight: 500,
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
   },
   submitBtn: {
     width: "100%",
-    padding: "1rem",
     marginTop: "0.5rem",
   },
   footerLinks: {
     marginTop: "1.5rem",
     textAlign: "center",
-    fontSize: "0.9rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
   link: {
     fontWeight: 600,
+    color: "var(--color-primary)",
     textDecoration: "underline",
   },
 };

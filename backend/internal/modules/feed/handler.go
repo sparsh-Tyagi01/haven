@@ -13,22 +13,16 @@ import (
 	"github.com/sparsh-Tyagi01/haven/backend/internal/modules/posts"
 )
 
-// Handler holds dependencies for feed-related HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new feed Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Get Community Feed ───────────────────────────
-
-// GetCommunityFeed returns chronological posts from a community.
-// GET /api/v1/feed/community/{slug}
 func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if slug == "" {
@@ -38,9 +32,8 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 
 	page, perPage := parsePagination(r)
 	offset := (page - 1) * perPage
-	postType := r.URL.Query().Get("type") // Optional post type filter (discussion, question, etc.)
+	postType := r.URL.Query().Get("type")
 
-	// Check if community exists and get visibility
 	var communityID string
 	var communityVisibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -56,10 +49,8 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve user ID from context if authenticated
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Verify read access to private/invite-only community
 	if communityVisibility != "public" {
 		if userID == "" {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "this community is private"})
@@ -76,7 +67,6 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build query
 	query := `SELECT p.id, p.community_id, p.author_id, p.title, p.content, p.post_type, p.is_solved, p.created_at, p.updated_at,
 	                 u.username, u.display_name, u.avatar_url,
 	                 c.name, c.slug
@@ -95,11 +85,9 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 		argIdx++
 	}
 
-	// Count total posts
 	var total int
 	h.db.QueryRowContext(r.Context(), countQuery, args...).Scan(&total)
 
-	// Order and Paginate
 	query += ` ORDER BY p.created_at DESC LIMIT $` + strconv.Itoa(argIdx) + ` OFFSET $` + strconv.Itoa(argIdx+1)
 	args = append(args, perPage, offset)
 
@@ -123,7 +111,6 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Retrieve vote aggregates for each post
 		h.db.QueryRowContext(r.Context(),
 			`SELECT 
 			   COUNT(CASE WHEN vote_type = 'upvote' THEN 1 END),
@@ -134,7 +121,6 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 			p.ID,
 		).Scan(&p.UpvotesCount, &p.HelpfulCount, &p.FunnyCount, &p.InsightfulCount)
 
-		// Fetch current user's vote if authenticated
 		if userID != "" {
 			var voteType string
 			err = h.db.QueryRowContext(r.Context(),
@@ -157,10 +143,6 @@ func (h *Handler) GetCommunityFeed(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── Get Home Feed ────────────────────────────────
-
-// GetHomeFeed aggregates posts from communities the user has joined.
-// GET /api/v1/feed/home
 func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -171,7 +153,6 @@ func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 	offset := (page - 1) * perPage
 
-	// Query chronological feed of posts from communities the user is a member of
 	query := `SELECT p.id, p.community_id, p.author_id, p.title, p.content, p.post_type, p.is_solved, p.created_at, p.updated_at,
 	                 u.username, u.display_name, u.avatar_url,
 	                 c.name, c.slug
@@ -191,7 +172,6 @@ func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	// Count total home feed posts
 	var total int
 	h.db.QueryRowContext(r.Context(),
 		`SELECT COUNT(p.id)
@@ -213,7 +193,6 @@ func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Retrieve vote aggregates for each post
 		h.db.QueryRowContext(r.Context(),
 			`SELECT 
 			   COUNT(CASE WHEN vote_type = 'upvote' THEN 1 END),
@@ -224,7 +203,6 @@ func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 			p.ID,
 		).Scan(&p.UpvotesCount, &p.HelpfulCount, &p.FunnyCount, &p.InsightfulCount)
 
-		// Fetch current user's vote
 		var voteType string
 		err = h.db.QueryRowContext(r.Context(),
 			`SELECT vote_type FROM votes WHERE post_id = $1 AND user_id = $2`,
@@ -245,7 +223,6 @@ func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── Helpers ──────────────────────────────────────
 
 func parsePagination(r *http.Request) (int, int) {
 	page := 1

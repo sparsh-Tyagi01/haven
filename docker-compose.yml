@@ -1,7 +1,6 @@
 version: "3.9"
 
 services:
-  # ── PostgreSQL 16 ──────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: haven-postgres
@@ -20,7 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Redis 7 ────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: haven-redis
@@ -35,7 +33,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── OpenSearch 2 (single-node) ─────────────────
   opensearch:
     image: opensearchproject/opensearch:2.17.0
     container_name: haven-opensearch
@@ -55,7 +52,6 @@ services:
       timeout: 10s
       retries: 10
 
-  # ── MinIO (S3-compatible storage) ──────────────
   minio:
     image: minio/minio:latest
     container_name: haven-minio

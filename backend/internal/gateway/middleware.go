@@ -11,22 +11,16 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// ── Context Keys ─────────────────────────────────
 
 const (
 	ContextKeyUserID = "userID"
 )
 
-// GetUserID extracts the authenticated user ID from the request context.
 func GetUserID(r *http.Request) (string, bool) {
 	id, ok := r.Context().Value(ContextKeyUserID).(string)
 	return id, ok
 }
 
-// ── JWT Middleware ────────────────────────────────
-
-// JWTMiddleware validates the Authorization header (Bearer token),
-// extracts the user_id claim, and injects it into the request context.
 func JWTMiddleware(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -67,16 +61,13 @@ func JWTMiddleware(secret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Inject user ID into context
 			ctx := context.WithValue(r.Context(), ContextKeyUserID, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-// OptionalJWTMiddleware attempts to validate a Bearer token if present,
-// injecting the user_id claim into the request context, but lets unauthenticated
-// requests pass through without error.
+
 func OptionalJWTMiddleware(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -123,10 +114,6 @@ func OptionalJWTMiddleware(secret string) func(http.Handler) http.Handler {
 	}
 }
 
-// ── CORS Middleware ───────────────────────────────
-
-// CORSMiddleware adds Cross-Origin Resource Sharing headers to support
-// the Next.js frontend running on a different port during development.
 func CORSMiddleware(frontendURL string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +123,6 @@ func CORSMiddleware(frontendURL string) func(http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Max-Age", "86400")
 
-			// Handle preflight
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return
@@ -147,14 +133,9 @@ func CORSMiddleware(frontendURL string) func(http.Handler) http.Handler {
 	}
 }
 
-// ── Rate Limiter ─────────────────────────────────
-
-// RateLimitMiddleware uses Redis sliding window counters to limit requests
-// per IP address. Returns 429 Too Many Requests when the limit is exceeded.
 func RateLimitMiddleware(rdb *redis.Client, maxRequests int, window time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip rate limiting if Redis is not available (graceful degradation)
 			if rdb == nil {
 				next.ServeHTTP(w, r)
 				return
@@ -164,15 +145,12 @@ func RateLimitMiddleware(rdb *redis.Client, maxRequests int, window time.Duratio
 			key := fmt.Sprintf("rate:%s", ip)
 			ctx := r.Context()
 
-			// Increment counter
 			count, err := rdb.Incr(ctx, key).Result()
 			if err != nil {
-				// If Redis is down, allow the request
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Set expiry on first request in the window
 			if count == 1 {
 				rdb.Expire(ctx, key, window)
 			}

@@ -4,9 +4,7 @@ import (
 	"time"
 )
 
-// ── Domain Models ────────────────────────────────
 
-// Community represents a server (either a pending proposal or an active community).
 type Community struct {
 	ID           string    `json:"id"`
 	Name         string    `json:"name"`
@@ -17,7 +15,7 @@ type Community struct {
 	LogoURL      string    `json:"logo_url"`
 	BannerURL    string    `json:"banner_url"`
 	OwnerID      string    `json:"owner_id"`
-	Visibility   string    `json:"visibility"`   // public | private | invite_only
+	Visibility   string    `json:"visibility"`  
 	IsProposal   bool      `json:"is_proposal"`
 	UpvotesCount int       `json:"upvotes_count"`
 	MemberCount  int       `json:"member_count"`
@@ -25,23 +23,17 @@ type Community struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// Membership represents a user's role within a community.
 type Membership struct {
 	ID          string    `json:"id"`
 	UserID      string    `json:"user_id"`
 	CommunityID string    `json:"community_id"`
-	Role        string    `json:"role"` // owner | admin | moderator | expert | member | guest
+	Role        string    `json:"role"` 
 	Reputation  int       `json:"reputation"`
 	JoinedAt    time.Time `json:"joined_at"`
-	// Enriched fields (populated by joins, not stored directly)
 	Username    string `json:"username,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
 	AvatarURL   string `json:"avatar_url,omitempty"`
 }
-
-// ── Request Models ───────────────────────────────
-
-// CreateProposalRequest is the payload for submitting a new community proposal.
 type CreateProposalRequest struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
@@ -51,7 +43,6 @@ type CreateProposalRequest struct {
 	BannerURL   string   `json:"banner_url"`
 }
 
-// UpdateCommunityRequest is the payload for updating community details.
 type UpdateCommunityRequest struct {
 	Name        *string   `json:"name,omitempty"`
 	Description *string   `json:"description,omitempty"`
@@ -62,14 +53,11 @@ type UpdateCommunityRequest struct {
 	Visibility  *string   `json:"visibility,omitempty"`
 }
 
-// UpdateRoleRequest is the payload for changing a member's role.
 type UpdateRoleRequest struct {
 	Role string `json:"role"`
 }
 
-// ── Response Models ──────────────────────────────
 
-// CommunityListResponse wraps a paginated list of communities.
 type CommunityListResponse struct {
 	Communities []Community `json:"communities"`
 	Total       int         `json:"total"`
@@ -77,22 +65,15 @@ type CommunityListResponse struct {
 	PerPage     int         `json:"per_page"`
 }
 
-// MemberListResponse wraps a paginated list of members.
 type MemberListResponse struct {
 	Members []Membership `json:"members"`
 	Total   int          `json:"total"`
 }
-
-// VoteResponse indicates the result of a proposal vote.
 type VoteResponse struct {
 	Voted         bool `json:"voted"`
 	UpvotesCount  int  `json:"upvotes_count"`
-	Provisioned   bool `json:"provisioned"` // true if this vote caused auto-provision
+	Provisioned   bool `json:"provisioned"` 
 }
-
-// ── Validation ───────────────────────────────────
-
-// Validate checks the CreateProposalRequest for required fields and constraints.
 func (r *CreateProposalRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 
@@ -106,7 +87,6 @@ func (r *CreateProposalRequest) Validate() map[string]string {
 	return errors
 }
 
-// ValidRoles contains the set of allowed membership roles.
 var ValidRoles = map[string]bool{
 	"owner":     true,
 	"admin":     true,
@@ -116,7 +96,6 @@ var ValidRoles = map[string]bool{
 	"guest":     true,
 }
 
-// ValidVisibilities contains the set of allowed visibility levels.
 var ValidVisibilities = map[string]bool{
 	"public":      true,
 	"private":     true,

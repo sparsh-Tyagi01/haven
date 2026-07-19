@@ -13,22 +13,16 @@ import (
 	"github.com/sparsh-Tyagi01/haven/backend/internal/pkg/ai"
 )
 
-// Handler holds dependencies for post-related HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new post Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Create Post ──────────────────────────────────
-
-// CreatePost creates a new post in a community.
-// POST /api/v1/posts
 func (h *Handler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -47,7 +41,6 @@ func (h *Handler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify community exists and is not a proposal
 	var isProposal bool
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT is_proposal FROM communities WHERE id = $1`, req.CommunityID,
@@ -66,7 +59,6 @@ func (h *Handler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify author is a member of the community
 	var isMember bool
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM memberships WHERE user_id = $1 AND community_id = $2)`,
@@ -82,7 +74,6 @@ func (h *Handler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert post
 	aiClient := ai.NewClient()
 	isToxic, reason := aiClient.ScanToxicity(req.Title + " " + req.Content)
 	var modStatus string = "approved"
@@ -115,10 +106,6 @@ func (h *Handler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, post)
 }
 
-// ── Get Post Details ─────────────────────────────
-
-// GetPost retrieves details of a specific post including author info and vote counts.
-// GET /api/v1/posts/{id}
 func (h *Handler) GetPost(w http.ResponseWriter, r *http.Request) {
 	postID := chi.URLParam(r, "id")
 	if postID == "" {
@@ -126,7 +113,6 @@ func (h *Handler) GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve requesting user from context if authenticated (optional helper)
 	userID, _ := r.Context().Value("userID").(string)
 
 	var p Post
@@ -159,15 +145,12 @@ func (h *Handler) GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set AcceptedCommentID if valid
 	if acceptedComment.Valid {
 		val := acceptedComment.String
 		p.AcceptedCommentID = &val
 	}
-
-	// Enforce visibility
-	communityVisibility := p.UserVoteType // Retrieved temporarily
-	p.UserVoteType = ""                    // Clear it
+	communityVisibility := p.UserVoteType
+	p.UserVoteType = ""                    
 
 	if communityVisibility != "public" {
 		if userID == "" {
@@ -185,7 +168,6 @@ func (h *Handler) GetPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Retrieve vote aggregates
 	h.db.QueryRowContext(r.Context(),
 		`SELECT 
 		   COUNT(CASE WHEN vote_type = 'upvote' THEN 1 END),
@@ -196,7 +178,6 @@ func (h *Handler) GetPost(w http.ResponseWriter, r *http.Request) {
 		postID,
 	).Scan(&p.UpvotesCount, &p.HelpfulCount, &p.FunnyCount, &p.InsightfulCount)
 
-	// Fetch current user's vote if authenticated
 	if userID != "" {
 		var voteType string
 		err = h.db.QueryRowContext(r.Context(),
@@ -211,10 +192,6 @@ func (h *Handler) GetPost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
-// ── Create Comment ───────────────────────────────
-
-// CreateComment inserts a comment/reply under a post.
-// POST /api/v1/posts/{id}/comments
 func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -239,7 +216,6 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify post exists and retrieve community ID
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT community_id FROM posts WHERE id = $1`, postID,
@@ -254,7 +230,6 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify author is a member of the community
 	var isMember bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM memberships WHERE user_id = $1 AND community_id = $2)`,
@@ -265,7 +240,6 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If parent_id is specified, verify it exists and is attached to the same post
 	if req.ParentID != nil && *req.ParentID != "" {
 		var parentPostID string
 		err = h.db.QueryRowContext(r.Context(),
@@ -277,7 +251,6 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Insert comment
 	aiClient := ai.NewClient()
 	isToxic, reason := aiClient.ScanToxicity(req.Content)
 	var modStatus string = "approved"
@@ -309,10 +282,6 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, comment)
 }
 
-// ── Get Comments ─────────────────────────────────
-
-// GetPostComments returns comments for a post in chronological order.
-// GET /api/v1/posts/{id}/comments
 func (h *Handler) GetPostComments(w http.ResponseWriter, r *http.Request) {
 	postID := chi.URLParam(r, "id")
 	if postID == "" {
@@ -322,7 +291,6 @@ func (h *Handler) GetPostComments(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Fetch community ID and visibility first
 	var communityID string
 	var communityVisibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -353,7 +321,6 @@ func (h *Handler) GetPostComments(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Fetch all comments
 	rows, err := h.db.QueryContext(r.Context(),
 		`SELECT c.id, c.post_id, c.parent_id, c.author_id, c.content, c.created_at, c.updated_at,
 		        u.username, u.display_name, u.avatar_url, c.moderation_status, c.moderation_reason
@@ -385,7 +352,6 @@ func (h *Handler) GetPostComments(w http.ResponseWriter, r *http.Request) {
 			c.ModerationReason = &dbModReason.String
 		}
 
-		// Retrieve vote aggregates for this comment
 		h.db.QueryRowContext(r.Context(),
 			`SELECT 
 			   COUNT(CASE WHEN vote_type = 'upvote' THEN 1 END),
@@ -396,7 +362,6 @@ func (h *Handler) GetPostComments(w http.ResponseWriter, r *http.Request) {
 			c.ID,
 		).Scan(&c.UpvotesCount, &c.HelpfulCount, &c.FunnyCount, &c.InsightfulCount)
 
-		// User vote type
 		if userID != "" {
 			var voteType string
 			err = h.db.QueryRowContext(r.Context(),
@@ -414,10 +379,6 @@ func (h *Handler) GetPostComments(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, comments)
 }
 
-// ── Vote Post ────────────────────────────────────
-
-// VotePost creates, updates, or deletes a reaction on a post.
-// POST /api/v1/posts/{id}/vote
 func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -437,7 +398,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify post exists
 	var exists bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)`, postID,
@@ -447,7 +407,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch post metadata to update reputation
 	var authorID, communityID string
 	var err error
 	err = h.db.QueryRowContext(r.Context(),
@@ -459,7 +418,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user already voted
 	var oldVoteType string
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT vote_type FROM votes WHERE post_id = $1 AND user_id = $2 AND comment_id IS NULL`,
@@ -469,7 +427,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 
 	if req.VoteType == "" {
 		if hasVotedBefore {
-			// Revoke vote
 			_, err := h.db.ExecContext(r.Context(),
 				`DELETE FROM votes WHERE post_id = $1 AND user_id = $2 AND comment_id IS NULL`,
 				postID, userID,
@@ -479,7 +436,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 				return
 			}
-			// Deduct 5 reputation points from the author
 			h.updateMemberReputation(r.Context(), authorID, communityID, -5)
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"message": "vote revoked"})
@@ -491,7 +447,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert or Update vote
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO votes (user_id, post_id, vote_type)
 		 VALUES ($1, $2, $3)
@@ -505,7 +460,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Adjust reputation if this is a new vote
 	if !hasVotedBefore {
 		h.updateMemberReputation(r.Context(), authorID, communityID, 5)
 	}
@@ -513,10 +467,6 @@ func (h *Handler) VotePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "vote recorded", "vote_type": req.VoteType})
 }
 
-// ── Vote Comment ─────────────────────────────────
-
-// VoteComment creates, updates, or deletes a reaction on a comment.
-// POST /api/v1/comments/{id}/vote
 func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -536,7 +486,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify comment exists
 	var exists bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM comments WHERE id = $1)`, commentID,
@@ -546,7 +495,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch comment metadata to update reputation
 	var authorID, communityID string
 	var err error
 	err = h.db.QueryRowContext(r.Context(),
@@ -560,7 +508,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user already voted
 	var oldVoteType string
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT vote_type FROM votes WHERE comment_id = $1 AND user_id = $2 AND post_id IS NULL`,
@@ -570,7 +517,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 
 	if req.VoteType == "" {
 		if hasVotedBefore {
-			// Revoke vote
 			_, err := h.db.ExecContext(r.Context(),
 				`DELETE FROM votes WHERE comment_id = $1 AND user_id = $2 AND post_id IS NULL`,
 				commentID, userID,
@@ -580,7 +526,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 				return
 			}
-			// Deduct 2 reputation points from the author
 			h.updateMemberReputation(r.Context(), authorID, communityID, -2)
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"message": "vote revoked"})
@@ -592,7 +537,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Upsert vote
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO votes (user_id, comment_id, vote_type)
 		 VALUES ($1, $2, $3)
@@ -606,7 +550,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Adjust reputation if this is a new vote
 	if !hasVotedBefore {
 		h.updateMemberReputation(r.Context(), authorID, communityID, 2)
 	}
@@ -614,10 +557,6 @@ func (h *Handler) VoteComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "vote recorded", "vote_type": req.VoteType})
 }
 
-// ── Mark Question Solved ─────────────────────────
-
-// SolveQuestion marks a question post as solved and accepts a comment.
-// PUT /api/v1/posts/{id}/solve
 func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -637,7 +576,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify post is of type 'question' and fetch community ID & author ID
 	var authorID string
 	var communityID string
 	var postType string
@@ -659,7 +597,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user has permission to solve (author of the post OR community owner/admin)
 	if authorID != userID {
 		var role string
 		err = h.db.QueryRowContext(r.Context(),
@@ -672,7 +609,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Verify the comment exists and is associated with this post
 	var commentPostID string
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT post_id FROM comments WHERE id = $1`, req.AcceptedCommentID,
@@ -682,14 +618,12 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch old solution state
 	var wasSolved bool
 	var oldAcceptedCommentID sql.NullString
 	h.db.QueryRowContext(r.Context(),
 		`SELECT is_solved, accepted_comment_id FROM posts WHERE id = $1`, postID,
 	).Scan(&wasSolved, &oldAcceptedCommentID)
 
-	// Fetch new solution author
 	var newCommentAuthorID string
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT author_id FROM comments WHERE id = $1`, req.AcceptedCommentID,
@@ -700,7 +634,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update post
 	_, err = h.db.ExecContext(r.Context(),
 		`UPDATE posts SET is_solved = true, accepted_comment_id = $1, updated_at = NOW() WHERE id = $2`,
 		req.AcceptedCommentID, postID,
@@ -711,7 +644,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If it was solved previously, deduct 15 points from the old author
 	if wasSolved && oldAcceptedCommentID.Valid && oldAcceptedCommentID.String != req.AcceptedCommentID {
 		var oldCommentAuthorID string
 		h.db.QueryRowContext(r.Context(),
@@ -722,7 +654,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Add 15 points to the new solution author
 	if !wasSolved || (oldAcceptedCommentID.Valid && oldAcceptedCommentID.String != req.AcceptedCommentID) {
 		h.updateMemberReputation(r.Context(), newCommentAuthorID, communityID, 15)
 	}
@@ -730,7 +661,6 @@ func (h *Handler) SolveQuestion(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "question resolved", "accepted_comment_id": req.AcceptedCommentID})
 }
 
-// ── Helpers ──────────────────────────────────────
 
 func (h *Handler) updateMemberReputation(ctx context.Context, userID, communityID string, diff int) {
 	if userID == "" || communityID == "" || diff == 0 {
@@ -755,7 +685,6 @@ func (h *Handler) updateMemberReputation(ctx context.Context, userID, communityI
 		newRep = 0
 	}
 
-	// Update reputation
 	_, err = h.db.ExecContext(ctx,
 		`UPDATE memberships SET reputation = $1, joined_at = joined_at WHERE user_id = $2 AND community_id = $3`,
 		newRep, userID, communityID,
@@ -767,7 +696,6 @@ func (h *Handler) updateMemberReputation(ctx context.Context, userID, communityI
 
 	log.Printf("[Reputation] Updated user %s in community %s: %d -> %d", userID, communityID, currentRep, newRep)
 
-	// Promote/demote logic (skip owner/admin/moderator)
 	if currentRole != "owner" && currentRole != "admin" && currentRole != "moderator" {
 		const ExpertThreshold = 50
 		if newRep >= ExpertThreshold && currentRole != "expert" {

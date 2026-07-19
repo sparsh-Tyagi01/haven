@@ -4,16 +4,14 @@ import (
 	"time"
 )
 
-// ── Domain Models ────────────────────────────────
 
-// Post represents a discussion, question, project update, event, or job in a community.
 type Post struct {
 	ID                string    `json:"id"`
 	CommunityID       string    `json:"community_id"`
 	AuthorID          string    `json:"author_id"`
 	Title             string    `json:"title"`
 	Content           string    `json:"content"`
-	PostType          string    `json:"post_type"` // discussion | question | project | event | job
+	PostType          string    `json:"post_type"` 
 	IsSolved          bool      `json:"is_solved"`
 	AcceptedCommentID *string   `json:"accepted_comment_id,omitempty"`
 	ModerationStatus  string    `json:"moderation_status,omitempty"`
@@ -21,22 +19,19 @@ type Post struct {
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 
-	// Enriched fields
 	AuthorUsername    string `json:"author_username,omitempty"`
 	AuthorDisplayName string `json:"author_display_name,omitempty"`
 	AuthorAvatarURL   string `json:"author_avatar_url,omitempty"`
 	CommunityName     string `json:"community_name,omitempty"`
 	CommunitySlug     string `json:"community_slug,omitempty"`
 
-	// Vote metrics
 	UpvotesCount    int `json:"upvotes_count"`
 	HelpfulCount    int `json:"helpful_count"`
 	FunnyCount      int `json:"funny_count"`
 	InsightfulCount int `json:"insightful_count"`
-	UserVoteType    string `json:"user_vote_type,omitempty"` // The vote type registered by the requesting user
+	UserVoteType    string `json:"user_vote_type,omitempty"` 
 }
 
-// Comment represents a threaded reply to a post.
 type Comment struct {
 	ID        string    `json:"id"`
 	PostID    string    `json:"post_id"`
@@ -48,12 +43,10 @@ type Comment struct {
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 
-	// Enriched fields
 	AuthorUsername    string `json:"author_username,omitempty"`
 	AuthorDisplayName string `json:"author_display_name,omitempty"`
 	AuthorAvatarURL   string `json:"author_avatar_url,omitempty"`
 
-	// Vote metrics
 	UpvotesCount    int `json:"upvotes_count"`
 	HelpfulCount    int `json:"helpful_count"`
 	FunnyCount      int `json:"funny_count"`
@@ -61,35 +54,30 @@ type Comment struct {
 	UserVoteType    string `json:"user_vote_type,omitempty"`
 }
 
-// ── Request Models ───────────────────────────────
-
-// CreatePostRequest is the payload for creating a new post.
 type CreatePostRequest struct {
 	CommunityID string `json:"community_id"`
 	Title       string `json:"title"`
 	Content     string `json:"content"`
-	PostType    string `json:"post_type"` // discussion | question | project | event | job
+	PostType    string `json:"post_type"`
 }
 
-// CreateCommentRequest is the payload for creating a comment/reply.
 type CreateCommentRequest struct {
 	Content  string  `json:"content"`
 	ParentID *string `json:"parent_id,omitempty"`
 }
 
-// VoteRequest represents the payload for registering/updating a vote.
+
 type VoteRequest struct {
-	VoteType string `json:"vote_type"` // upvote | helpful | funny | insightful (empty to revoke/remove)
+	VoteType string `json:"vote_type"`
 }
 
-// SolveQuestionRequest is the payload for marking a question solved.
+
 type SolveQuestionRequest struct {
 	AcceptedCommentID string `json:"accepted_comment_id"`
 }
 
-// ── Validation ───────────────────────────────────
 
-// Validate checks the CreatePostRequest for constraints.
+
 func (r *CreatePostRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 
@@ -109,7 +97,7 @@ func (r *CreatePostRequest) Validate() map[string]string {
 	return errors
 }
 
-// ValidPostTypes holds the set of allowed post types.
+
 var ValidPostTypes = map[string]bool{
 	"discussion": true,
 	"question":   true,
@@ -118,7 +106,6 @@ var ValidPostTypes = map[string]bool{
 	"job":        true,
 }
 
-// ValidVoteTypes holds the set of allowed vote types.
 var ValidVoteTypes = map[string]bool{
 	"upvote":     true,
 	"helpful":    true,

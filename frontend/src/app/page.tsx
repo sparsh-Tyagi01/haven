@@ -2,762 +2,406 @@
 
 import React from "react";
 import Link from "next/link";
+import Navbar from "./components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import { useMyCommunities, type Community } from "../hooks/useCommunities";
 import { useHomeFeed, type Post } from "../hooks/usePosts";
 
 export default function HomePage() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
-  const { data: myCommunitiesData, loading: communitiesLoading } = useMyCommunities();
+  const { user, isAuthenticated, loading } = useAuth();
+  const { data: myCommunitiesData, loading: communitiesLoading } =
+    useMyCommunities();
   const { data: homeFeedData, loading: feedLoading } = useHomeFeed();
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Fetching Haven session...</p>
+      <div className="page-wrapper">
+        <Navbar />
+        <div style={styles.loadingScreen}>
+          <div style={styles.spinner} />
+          <p style={styles.loadingText}>Loading Haven...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
-        {/* Header Block */}
-        <header style={styles.header}>
-          <div style={styles.headerTop}>
-            <span style={styles.headerMeta}>No. 1 — Monthly Circulation</span>
-            <span style={styles.headerMeta}>{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-          </div>
-          <h1 style={styles.brandTitle}>THE HAVEN</h1>
-          <p style={styles.brandSub}>An Independent Knowledge Network and Social Operating System</p>
-        </header>
+    <div className="page-wrapper">
+      <Navbar />
+      <main className="page-content">
+        {!isAuthenticated ? <LandingPage /> : <Dashboard />}
+      </main>
+      <Footer />
+    </div>
+  );
 
-        {/* Auth Dependent Contents */}
-        {!isAuthenticated ? (
-          /* Unauthenticated Editorial Landing */
-          <div style={styles.landingGrid}>
-            <div style={styles.mainFeature}>
-              <h2 style={styles.featureTitle}>The Algorithmic Outrage Model Has Failed.</h2>
-              <p style={styles.paragraph}>
-                Existing platforms organize around global feeds, optimized for metrics like screen-time, click velocity, and advertising margins. The outcome is the degradation of collective knowledge and a default state of constant outrage.
-              </p>
-              <p style={styles.paragraph}>
-                <strong>Haven</strong> proposes a structural redirection. By centering all network interactions inside self-contained <strong>Communities (Servers)</strong>, it creates spaces for cooperative thinking, permanent documentation, and structured workflows.
-              </p>
-              <div style={styles.landingCtas}>
-                <Link href="/auth/register" className="btn btn-primary" style={styles.ctaBtn}>
-                  Establish Citizenship
-                </Link>
-                <Link href="/auth/login" className="btn btn-secondary" style={styles.ctaBtn}>
-                  Sign In to Registry
-                </Link>
-              </div>
-            </div>
-
-            <div style={styles.sideFeature}>
-              <h3 style={styles.sideTitle}>The Foundations of Haven</h3>
-              <ul style={styles.foundationList}>
-                <li style={styles.foundationItem}>
-                  <strong>No Global Followers</strong>
-                  <p style={styles.foundationDesc}>All discussions happen in server channels. Followers do not determine credibility; helpful contributions do.</p>
-                </li>
-                <li style={styles.foundationItem}>
-                  <strong>Permanent Memory</strong>
-                  <p style={styles.foundationDesc}>Important discussions are synthesized by AI and verified by the community to construct structured wiki documentation.</p>
-                </li>
-                <li style={styles.foundationItem}>
-                  <strong>Integrated Workflows</strong>
-                  <p style={styles.foundationDesc}>Lightweight project Kanban boards and events are built right into the server, removing external tool sprawl.</p>
-                </li>
-              </ul>
+  /* ─────────────────────────────────────────────────────────
+     Landing Page (Unauthenticated)
+     ───────────────────────────────────────────────────────── */
+  function LandingPage() {
+    return (
+      <>
+        {/* Hero */}
+        <section style={styles.hero}>
+          <div className="container" style={styles.heroInner}>
+            <p style={styles.heroEyebrow}>Community-First Knowledge Network</p>
+            <h1 style={styles.heroTitle}>
+              Where communities build
+              <br />
+              lasting knowledge
+            </h1>
+            <p style={styles.heroDescription}>
+              Haven is a platform for communities that value thoughtful
+              discussion, permanent documentation, and meaningful collaboration
+              — without the noise of algorithmic feeds.
+            </p>
+            <div style={styles.heroCtas}>
+              <Link href="/auth/register" className="btn btn-primary btn-lg">
+                Join Haven
+              </Link>
+              <Link href="/auth/login" className="btn btn-secondary btn-lg">
+                Sign In
+              </Link>
             </div>
           </div>
-        ) : (
-          /* Authenticated Dashboard */
-          <div style={styles.dashboardContainer}>
-            <div style={styles.welcomeBanner}>
-              <h2 style={styles.welcomeTitle}>Welcome back, {user?.display_name || user?.username}</h2>
-              <p style={styles.welcomeSub}>Identity verified. Current workspace environment is active.</p>
+        </section>
+
+        {/* Thin decorative rule */}
+        <div className="container">
+          <div style={styles.rule} />
+        </div>
+
+        {/* Features */}
+        <section style={styles.featuresSection}>
+          <div className="container">
+            <div style={styles.featuresGrid}>
+              <div style={styles.featureCard}>
+                <span style={styles.featureIcon}>⬡</span>
+                <h3 style={styles.featureTitle}>Community-First</h3>
+                <p style={styles.featureDesc}>
+                  All discussions live inside focused communities. No global
+                  follower feeds — your experience is shaped by the groups you
+                  choose to join.
+                </p>
+              </div>
+              <div style={styles.featureCard}>
+                <span style={styles.featureIcon}>◈</span>
+                <h3 style={styles.featureTitle}>Knowledge Preserved</h3>
+                <p style={styles.featureDesc}>
+                  Important discussions are synthesized into a structured wiki
+                  that grows over time. Communities become smarter as they age.
+                </p>
+              </div>
+              <div style={styles.featureCard}>
+                <span style={styles.featureIcon}>▣</span>
+                <h3 style={styles.featureTitle}>Built-in Tools</h3>
+                <p style={styles.featureDesc}>
+                  Project boards, events, real-time chat, and AI-assisted
+                  moderation — everything a community needs, in one place.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Bottom CTA */}
+        <section style={styles.bottomCta}>
+          <div className="container" style={{ textAlign: "center" }}>
+            <h2 style={styles.bottomCtaTitle}>
+              Ready to build something meaningful?
+            </h2>
+            <p style={styles.bottomCtaDesc}>
+              Join Haven and be part of communities that value substance over
+              noise.
+            </p>
+            <Link href="/auth/register" className="btn btn-primary btn-lg">
+              Get Started — It&apos;s Free
+            </Link>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     Dashboard (Authenticated)
+     ───────────────────────────────────────────────────────── */
+  function Dashboard() {
+    return (
+      <div className="container" style={styles.dashboardContainer}>
+        {/* Welcome */}
+        <div style={styles.welcomeBar}>
+          <h2 style={styles.welcomeTitle}>
+            Welcome back, {user?.display_name || user?.username}
+          </h2>
+        </div>
+
+        <div style={styles.dashboardGrid}>
+          {/* ── Main Column: Feed ─────────────── */}
+          <div style={styles.mainColumn}>
+            <div style={styles.sectionHeader}>
+              <h3 style={styles.sectionTitle}>Your Feed</h3>
             </div>
 
-            <div style={styles.dashboardGrid}>
-              {/* Profile Card */}
-              <div style={styles.profileCard}>
-                <h3 style={styles.cardHeader}>Citizenship Passport</h3>
-                <div style={styles.avatarRow}>
-                  <div style={styles.avatarPlaceholder}>
-                    {user?.display_name?.charAt(0).toUpperCase() || user?.username.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h4 style={styles.profileName}>{user?.display_name}</h4>
-                    <span style={styles.profileUsername}>@{user?.username}</span>
-                  </div>
-                </div>
+            {feedLoading ? (
+              <FeedSkeleton />
+            ) : homeFeedData?.posts && homeFeedData.posts.length > 0 ? (
+              <div style={styles.feedList}>
+                {homeFeedData.posts.map((post: Post) => (
+                  <FeedCard key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <div style={styles.emptyState}>
+                <span style={styles.emptyIcon}>◉</span>
+                <h4 style={styles.emptyTitle}>Your feed is empty</h4>
+                <p style={styles.emptyDesc}>
+                  Join some communities to see posts here.
+                </p>
+                <Link
+                  href="/communities"
+                  className="btn btn-primary"
+                >
+                  Browse Communities
+                </Link>
+              </div>
+            )}
+          </div>
 
-                <div style={styles.profileMetaList}>
-                  <div style={styles.profileMetaItem}>
-                    <span style={styles.metaLabel}>Reputation Score</span>
-                    <span style={styles.metaValue}>{user?.reputation} Badge Points</span>
-                  </div>
-                  <div style={styles.profileMetaItem}>
-                    <span style={styles.metaLabel}>Profile Visibility</span>
-                    <span style={{ ...styles.metaValue, textTransform: "capitalize" } as React.CSSProperties}>{user?.privacy}</span>
-                  </div>
-                  <div style={styles.profileMetaItem}>
-                    <span style={styles.metaLabel}>Verified Skills</span>
-                    <div style={styles.skillsContainer}>
-                      {user?.skills && user.skills.length > 0 ? (
-                        user.skills.map((skill, idx) => (
-                          <span key={idx} style={styles.skillTag}>{skill}</span>
-                        ))
-                      ) : (
-                        <span style={styles.noSkillsText}>No skills documented yet.</span>
-                      )}
-                  </div>
+          {/* ── Sidebar ───────────────────────── */}
+          <aside style={styles.sidebar}>
+            {/* Profile Card */}
+            <div className="card" style={styles.profileCard}>
+              <div style={styles.profileHeader}>
+                <div style={styles.profileAvatar}>
+                  {user?.display_name?.charAt(0).toUpperCase() ||
+                    user?.username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={styles.profileName}>{user?.display_name}</div>
+                  <div style={styles.profileUsername}>@{user?.username}</div>
                 </div>
               </div>
+              <div style={styles.profileStats}>
+                <div style={styles.profileStat}>
+                  <span style={styles.statValue}>{user?.reputation || 0}</span>
+                  <span style={styles.statLabel}>Reputation</span>
+                </div>
+                <div style={styles.profileStat}>
+                  <span style={styles.statValue}>
+                    {myCommunitiesData?.communities?.length || 0}
+                  </span>
+                  <span style={styles.statLabel}>Communities</span>
+                </div>
+              </div>
+              {user?.skills && user.skills.length > 0 && (
+                <div style={styles.skillsList}>
+                  {user.skills.map((skill, idx) => (
+                    <span key={idx} className="badge">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
+            {/* Quick Actions */}
+            <div className="card" style={styles.quickActions}>
+              <Link
+                href="/communities"
+                className="btn btn-primary"
+                style={{ width: "100%", textDecoration: "none" }}
+              >
+                Explore Communities
+              </Link>
               <Link
                 href="/messages"
-                  className="btn btn-primary"
-                  style={{ width: "100%", textAlign: "center", marginBottom: "0.75rem", textDecoration: "none", display: "block" }}
-                >
-                  ✉️ Direct Messages Inbox
-                </Link>
-
-                <button onClick={logout} className="btn btn-secondary" style={styles.logoutBtn}>
-                  Revoke Session
-                </button>
-              </div>
-
-              {/* Status Board */}
-              <div style={styles.statusBoard}>
-                <h3 style={styles.cardHeader}>Workspace Diagnostics</h3>
-                <p style={styles.paragraph}>
-                  You are successfully authenticated against the Haven modular monolith backend.
-                </p>
-                <div style={styles.statusList}>
-                  <div style={styles.statusItem}>
-                    <div style={styles.statusIndicatorActive}></div>
-                    <span>API Gateway: Online (Port 8080)</span>
-                  </div>
-                  <div style={styles.statusItem}>
-                    <div style={styles.statusIndicatorActive}></div>
-                    <span>PostgreSQL Database: Connected</span>
-                  </div>
-                  <div style={styles.statusItem}>
-                    <div style={styles.statusIndicatorActive}></div>
-                    <span>Redis Cache Store: Connected</span>
-                  </div>
-                  <div style={styles.statusItem}>
-                    <div style={styles.statusIndicatorActive}></div>
-                    <span>Community Module: Active (Phase 2)</span>
-                  </div>
-                  <div style={styles.statusItem}>
-                    <div style={styles.statusIndicatorPending}></div>
-                    <span>WebSockets (Presence & Chat): Pending Phase 5</span>
-                  </div>
-                </div>
-                <div style={styles.infoAlert}>
-                  <strong>Phase 2 Accomplished:</strong> Community proposals, server provisioning, membership management, and RBAC are now fully operational. Next up: Phase 3 — Posts & Comment System!
-                </div>
-              </div>
+                className="btn btn-secondary"
+                style={{ width: "100%", textDecoration: "none" }}
+              >
+                ✉ Messages
+              </Link>
             </div>
 
-            {/* Your Communities Section */}
-            <div style={styles.communitiesSection}>
-              <div style={styles.communitiesSectionHeader}>
-                <h3 style={styles.cardHeader}>Your Communities</h3>
-                <Link href="/communities" style={styles.exploreLink}>
-                  Explore Registry →
+            {/* Communities List */}
+            <div className="card" style={styles.communitiesSidebar}>
+              <div style={styles.sidebarSectionHeader}>
+                <h4 style={styles.sidebarSectionTitle}>Your Communities</h4>
+                <Link href="/communities" style={styles.seeAllLink}>
+                  See all
                 </Link>
               </div>
+
               {communitiesLoading ? (
-                <p style={styles.loadingSmallText}>Loading communities...</p>
-              ) : myCommunitiesData && myCommunitiesData.communities && myCommunitiesData.communities.length > 0 ? (
-                <div style={styles.communityMiniGrid}>
+                <p style={styles.loadingSmall}>Loading...</p>
+              ) : myCommunitiesData?.communities &&
+                myCommunitiesData.communities.length > 0 ? (
+                <div style={styles.communityList}>
                   {myCommunitiesData.communities.map((c: Community) => (
-                    <Link key={c.id} href={`/communities/${c.slug}`} style={styles.communityMiniCard}>
-                      <div style={{ ...styles.miniLogo, backgroundColor: stringToColor(c.name) }}>
+                    <Link
+                      key={c.id}
+                      href={`/communities/${c.slug}`}
+                      style={styles.communityItem}
+                    >
+                      <span
+                        style={{
+                          ...styles.communityDot,
+                          backgroundColor: stringToColor(c.name),
+                        }}
+                      >
                         {c.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div style={styles.miniInfo}>
-                        <span style={styles.miniName}>{c.name}</span>
-                        <span style={styles.miniMeta}>{c.member_count} members · {c.category}</span>
-                      </div>
+                      </span>
+                      <span style={styles.communityItemInfo}>
+                        <span style={styles.communityItemName}>{c.name}</span>
+                        <span style={styles.communityItemMeta}>
+                          {c.member_count} members
+                        </span>
+                      </span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div style={styles.noCommunitiesState}>
-                  <p style={styles.noCommunitiesText}>You haven&apos;t joined any communities yet.</p>
-                  <Link href="/communities" className="btn btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}>
-                    Explore Communities
-                  </Link>
-                </div>
+                <p style={styles.emptySidebar}>
+                  You haven&apos;t joined any communities yet.
+                </p>
               )}
             </div>
-
-            {/* Personalized Timeline (Home Feed) Section */}
-            <div style={styles.feedSection}>
-              <h3 style={styles.cardHeader}>Personalized Timeline</h3>
-              {feedLoading ? (
-                <p style={styles.loadingSmallText}>Aggregating your community feeds...</p>
-              ) : homeFeedData && homeFeedData.posts && homeFeedData.posts.length > 0 ? (
-                <div style={styles.postsList}>
-                  {homeFeedData.posts.map((p: Post) => (
-                    <div key={p.id} style={styles.postFeedItem}>
-                      <div style={styles.postVoteScore}>
-                        <span>▲</span>
-                        <strong>{p.upvotes_count}</strong>
-                      </div>
-                      <div style={styles.postBodyInfo}>
-                        <div style={styles.postTitleRow}>
-                          <Link href={`/posts/${p.id}`} style={styles.postLinkTitle}>
-                            {p.title}
-                          </Link>
-                          {p.post_type === "question" && (
-                            <span
-                              style={{
-                                ...styles.solvedTag,
-                                backgroundColor: p.is_solved ? "var(--success)" : "var(--primary-light)",
-                                color: p.is_solved ? "white" : "var(--primary)",
-                              }}
-                            >
-                              {p.is_solved ? "✓ Solved" : "Unresolved"}
-                            </span>
-                          )}
-                        </div>
-                        <div style={styles.postMetaLine}>
-                          <span style={styles.itemTypeBadge}>{p.post_type}</span>
-                          <span>
-                            in <Link href={`/communities/${p.community_slug}`}><strong>{p.community_name}</strong></Link>
-                          </span>
-                          <span>by <strong>@{p.author_username}</strong></span>
-                          <span>·</span>
-                          <span>{new Date(p.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={styles.noPostsCard}>
-                  <p style={styles.noPostsText}>No discussions have been published in your joined communities yet.</p>
-                  <Link href="/communities" className="btn btn-secondary" style={{ marginTop: '0.5rem', padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
-                    Browse Communities Registry
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerBorder}></div>
-          <div style={styles.footerGrid}>
-            <span>No. 1 — Combined Edition</span>
-            <span style={styles.textCenter}>Independent Social OS</span>
-            <span style={{ textAlign: "right" }}>Haven © {new Date().getFullYear()}</span>
-          </div>
-        </footer>
+          </aside>
+        </div>
       </div>
+    );
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Feed Card Component
+   ═══════════════════════════════════════════════════════════ */
+
+function FeedCard({ post }: { post: Post }) {
+  return (
+    <article className="card card-hover" style={styles.feedCard}>
+      <div style={styles.feedCardTop}>
+        <Link
+          href={`/communities/${post.community_slug}`}
+          style={styles.feedCommunity}
+        >
+          <span
+            style={{
+              ...styles.feedCommunityDot,
+              backgroundColor: stringToColor(post.community_name || ""),
+            }}
+          />
+          {post.community_name}
+        </Link>
+        <span style={styles.feedDot}>·</span>
+        <span style={styles.feedTimestamp}>
+          {formatTimeAgo(post.created_at)}
+        </span>
+      </div>
+
+      <Link href={`/posts/${post.id}`} style={styles.feedTitle}>
+        {post.title}
+      </Link>
+
+      <div style={styles.feedCardBottom}>
+        <div style={styles.feedMeta}>
+          <span style={styles.feedAuthor}>
+            by <strong>@{post.author_username}</strong>
+          </span>
+          {post.post_type !== "discussion" && (
+            <span className="badge" style={styles.feedTypeBadge}>
+              {post.post_type}
+            </span>
+          )}
+          {post.post_type === "question" && (
+            <span
+              className="badge"
+              style={{
+                backgroundColor: post.is_solved
+                  ? "var(--color-success-light)"
+                  : "var(--color-warning-light)",
+                color: post.is_solved
+                  ? "var(--color-success)"
+                  : "var(--color-warning)",
+              }}
+            >
+              {post.is_solved ? "✓ Solved" : "Open"}
+            </span>
+          )}
+        </div>
+        <div style={styles.feedVotes}>
+          <span style={styles.voteArrow}>▲</span>
+          <span style={styles.voteCount}>{post.upvotes_count}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Feed Skeleton Loader
+   ═══════════════════════════════════════════════════════════ */
+
+function FeedSkeleton() {
+  return (
+    <div style={styles.feedList}>
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="card" style={styles.skeletonCard}>
+          <div
+            className="animate-pulse"
+            style={{ ...styles.skeletonLine, width: "40%" }}
+          />
+          <div
+            className="animate-pulse"
+            style={{ ...styles.skeletonLine, width: "80%", height: "1.25rem" }}
+          />
+          <div
+            className="animate-pulse"
+            style={{ ...styles.skeletonLine, width: "60%" }}
+          />
+        </div>
+      ))}
     </div>
   );
 }
 
-const styles: { [key: string]: React.CSSProperties } = {
-  pageContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
-  },
-  loadingContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "var(--bg-main)",
-  },
-  spinner: {
-    width: "40px",
-    height: "40px",
-    border: "3px solid var(--border-light)",
-    borderTop: "3px solid var(--primary)",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-    marginBottom: "1rem",
-  },
-  loadingText: {
-    fontFamily: "var(--font-serif)",
-    fontStyle: "italic",
-    fontSize: "1.1rem",
-    color: "var(--text-muted)",
-  },
-  editorialFrame: {
-    width: "100%",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
-    padding: "2.5rem",
-    boxShadow: "var(--shadow-lg)",
-    display: "flex",
-    flexDirection: "column",
-    flexGrow: 1,
-  },
-  header: {
-    borderBottom: "3px solid var(--text-main)",
-    paddingBottom: "1.5rem",
-    marginBottom: "2.5rem",
-    textAlign: "center",
-  },
-  headerTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.5rem",
-    marginBottom: "1rem",
-  },
-  headerMeta: {
-    letterSpacing: "0.05em",
-  },
-  brandTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "4.5rem",
-    fontWeight: 800,
-    letterSpacing: "-0.04em",
-    textTransform: "uppercase",
-    border: "none",
-    padding: 0,
-    margin: 0,
-    lineHeight: 0.9,
-  },
-  brandSub: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.9rem",
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.12em",
-    color: "var(--text-muted)",
-    marginTop: "0.75rem",
-  },
-  landingGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.5fr 1fr",
-    gap: "3.5rem",
-    flexGrow: 1,
-  },
-  mainFeature: {
-    borderRight: "1px solid var(--border-color)",
-    paddingRight: "3.5rem",
-  },
-  featureTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2.5rem",
-    fontWeight: 600,
-    letterSpacing: "-0.02em",
-    lineHeight: 1.2,
-    marginBottom: "1.5rem",
-  },
-  paragraph: {
-    fontSize: "1.05rem",
-    color: "var(--text-main)",
-    lineHeight: 1.7,
-    marginBottom: "1.25rem",
-  },
-  landingCtas: {
-    display: "flex",
-    gap: "1rem",
-    marginTop: "2.5rem",
-  },
-  ctaBtn: {
-    padding: "1rem 2rem",
-  },
-  sideFeature: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  sideTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "1.5rem",
-    fontWeight: 600,
-    fontStyle: "italic",
-    marginBottom: "1.5rem",
-    borderBottom: "1px solid var(--text-main)",
-    paddingBottom: "0.5rem",
-  },
-  foundationList: {
-    listStyle: "none",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.5rem",
-  },
-  foundationItem: {
-    borderBottom: "1px dashed var(--border-color)",
-    paddingBottom: "1.25rem",
-  },
-  foundationDesc: {
-    fontSize: "0.92rem",
-    color: "var(--text-muted)",
-    marginTop: "0.25rem",
-    lineHeight: 1.5,
-  },
-  dashboardContainer: {
-    flexGrow: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "2.5rem",
-  },
-  welcomeBanner: {
-    backgroundColor: "var(--primary-light)",
-    borderLeft: "4px solid var(--primary)",
-    padding: "1.5rem 2rem",
-  },
-  welcomeTitle: {
-    fontSize: "1.8rem",
-    border: "none",
-    margin: 0,
-    padding: 0,
-  },
-  welcomeSub: {
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.8rem",
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    marginTop: "0.25rem",
-  },
-  dashboardGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1.5fr",
-    gap: "3rem",
-  },
-  profileCard: {
-    border: "1px solid var(--border-color)",
-    padding: "2rem",
-    backgroundColor: "var(--bg-surface)",
-    display: "flex",
-    flexDirection: "column",
-  },
-  cardHeader: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "1.35rem",
-    borderBottom: "1px solid var(--text-main)",
-    paddingBottom: "0.5rem",
-    marginBottom: "1.5rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.02em",
-  },
-  avatarRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "1.25rem",
-    marginBottom: "1.5rem",
-  },
-  avatarPlaceholder: {
-    width: "60px",
-    height: "60px",
-    borderRadius: "50%",
-    backgroundColor: "var(--primary)",
-    color: "var(--bg-surface)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "1.75rem",
-    fontWeight: 600,
-  },
-  profileName: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "1.35rem",
-    margin: 0,
-  },
-  profileUsername: {
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.85rem",
-    color: "var(--text-light)",
-  },
-  profileMetaList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.25rem",
-    marginBottom: "2rem",
-  },
-  profileMetaItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.25rem",
-  },
-  metaLabel: {
-    fontSize: "0.8rem",
-    fontWeight: 600,
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
-  metaValue: {
-    fontSize: "1.05rem",
-    color: "var(--text-main)",
-    fontWeight: 500,
-  },
-  skillsContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "0.5rem",
-    marginTop: "0.25rem",
-  },
-  skillTag: {
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    fontSize: "0.8rem",
-    fontWeight: 600,
-    padding: "0.25rem 0.6rem",
-    borderRadius: "2px",
-    border: "1px solid var(--border-color)",
-  },
-  noSkillsText: {
-    fontSize: "0.9rem",
-    color: "var(--text-light)",
-    fontStyle: "italic",
-  },
-  logoutBtn: {
-    width: "100%",
-    marginTop: "auto",
-  },
-  statusBoard: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  statusList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.75rem",
-    margin: "1.5rem 0",
-    padding: "1rem 1.5rem",
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface-hover)",
-  },
-  statusItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-    fontSize: "0.95rem",
-  },
-  statusIndicatorActive: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    backgroundColor: "var(--success)",
-  },
-  statusIndicatorPending: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    backgroundColor: "var(--accent)",
-  },
-  infoAlert: {
-    backgroundColor: "var(--primary-light)",
-    border: "1px solid var(--border-color)",
-    padding: "1.25rem",
-    fontSize: "0.95rem",
-    lineHeight: 1.6,
-  },
-  footer: {
-    marginTop: "auto",
-    paddingTop: "2.5rem",
-  },
-  footerBorder: {
-    height: "4px",
-    borderTop: "1px solid var(--text-main)",
-    borderBottom: "1px solid var(--text-main)",
-    marginBottom: "0.75rem",
-  },
-  footerGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-  },
-  // Phase 2: Community dashboard styles
-  communitiesSection: {
-    borderTop: "1px solid var(--border-color)",
-    paddingTop: "2rem",
-  },
-  communitiesSectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "1.5rem",
-  },
-  exploreLink: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.85rem",
-    fontWeight: 600,
-    color: "var(--primary)",
-    textDecoration: "none",
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
-  },
-  communityMiniGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: "1rem",
-  },
-  communityMiniCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-    padding: "1rem",
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface)",
-    textDecoration: "none",
-    color: "inherit",
-    transition: "all 0.15s ease",
-  },
-  miniLogo: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "white",
-    fontSize: "1.1rem",
-    fontWeight: 700,
-    flexShrink: 0,
-  },
-  miniInfo: {
-    display: "flex",
-    flexDirection: "column" as const,
-  },
-  miniName: {
-    fontSize: "0.95rem",
-    fontWeight: 600,
-    color: "var(--text-main)",
-  },
-  miniMeta: {
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    fontFamily: "var(--font-mono)",
-  },
-  noCommunitiesState: {
-    textAlign: "center" as const,
-    padding: "2.5rem",
-    border: "1px dashed var(--border-color)",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: "1rem",
-  },
-  noCommunitiesText: {
-    fontSize: "0.9rem",
-    color: "var(--text-light)",
-    fontStyle: "italic",
-    margin: 0,
-  },
-  loadingSmallText: {
-    fontSize: "0.85rem",
-    color: "var(--text-light)",
-    fontStyle: "italic",
-  },
-  // Phase 3: Home feed style tokens
-  feedSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.25rem",
-    borderTop: "1px solid var(--border-color)",
-    paddingTop: "2rem",
-    marginTop: "2rem",
-  },
-  postsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  postFeedItem: {
-    display: "flex",
-    gap: "1.25rem",
-    padding: "1.25rem",
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface)",
-    alignItems: "center",
-  },
-  postVoteScore: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    minWidth: "40px",
-    color: "var(--primary)",
-    fontSize: "0.85rem",
-  },
-  postBodyInfo: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.4rem",
-  },
-  postTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "1rem",
-    flexWrap: "wrap",
-  },
-  postLinkTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "1.15rem",
-    fontWeight: 600,
-    color: "var(--text-main)",
-    textDecoration: "none",
-  },
-  solvedTag: {
-    fontSize: "0.65rem",
-    fontWeight: 700,
-    padding: "0.2rem 0.5rem",
-    borderRadius: "2px",
-    textTransform: "uppercase",
-  },
-  postMetaLine: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-  },
-  itemTypeBadge: {
-    fontSize: "0.65rem",
-    fontWeight: 600,
-    textTransform: "uppercase",
-    padding: "0.1rem 0.4rem",
-    backgroundColor: "var(--bg-main)",
-    border: "1px solid var(--border-light)",
-    color: "var(--text-muted)",
-  },
-  noPostsCard: {
-    padding: "2.5rem",
-    border: "1px dashed var(--border-color)",
-    textAlign: "center",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: "0.5rem",
-  },
-};
+/* ═══════════════════════════════════════════════════════════
+   Footer
+   ═══════════════════════════════════════════════════════════ */
+
+function Footer() {
+  return (
+    <footer style={styles.footer}>
+      <div className="container">
+        <div style={styles.footerRule} />
+        <div style={styles.footerInner}>
+          <span style={styles.footerBrand}>Haven</span>
+          <span style={styles.footerText}>
+            Community-First Knowledge Network
+          </span>
+          <span style={styles.footerText}>
+            © {new Date().getFullYear()} Haven
+          </span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════════ */
 
 function stringToColor(str: string): string {
   const colors = [
-    "#4a5c43", "#b05c42", "#3c6e47", "#5e4a7a",
-    "#6b5b3e", "#2d6a6a", "#8b5e3c", "#4a6b8a",
+    "#2d4a3e",
+    "#8b3a3a",
+    "#4a6b8a",
+    "#6b5b3e",
+    "#5e4a7a",
+    "#2d6a6a",
+    "#8b5e3c",
+    "#3c6e47",
   ];
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -765,3 +409,506 @@ function stringToColor(str: string): string {
   }
   return colors[Math.abs(hash) % colors.length];
 }
+
+function formatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Styles
+   ═══════════════════════════════════════════════════════════ */
+
+const styles: { [key: string]: React.CSSProperties } = {
+  /* ── Loading ─────────────────────────────── */
+  loadingScreen: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "1rem",
+  },
+  spinner: {
+    width: "28px",
+    height: "28px",
+    border: "2px solid var(--border-primary)",
+    borderTop: "2px solid var(--color-primary)",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+  },
+  loadingText: {
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
+    fontStyle: "italic",
+    margin: 0,
+  },
+
+  /* ── Hero ─────────────────────────────────── */
+  hero: {
+    paddingTop: "5rem",
+    paddingBottom: "4rem",
+  },
+  heroInner: {
+    maxWidth: "680px",
+    textAlign: "center" as const,
+    margin: "0 auto",
+  },
+  heroEyebrow: {
+    fontSize: "var(--text-sm)",
+    fontWeight: 600,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.08em",
+    color: "var(--color-primary)",
+    marginBottom: "1rem",
+  },
+  heroTitle: {
+    fontFamily: "var(--font-display)",
+    fontSize: "3.25rem",
+    fontWeight: 700,
+    letterSpacing: "-0.03em",
+    lineHeight: 1.1,
+    color: "var(--text-primary)",
+    marginBottom: "1.5rem",
+  },
+  heroDescription: {
+    fontSize: "var(--text-lg)",
+    color: "var(--text-secondary)",
+    lineHeight: 1.7,
+    maxWidth: "540px",
+    margin: "0 auto 2.5rem",
+  },
+  heroCtas: {
+    display: "flex",
+    gap: "0.75rem",
+    justifyContent: "center",
+  },
+
+  /* ── Rule ─────────────────────────────────── */
+  rule: {
+    height: "1px",
+    background:
+      "linear-gradient(to right, transparent, var(--border-secondary), transparent)",
+  },
+
+  /* ── Features ────────────────────────────── */
+  featuresSection: {
+    padding: "4rem 0",
+  },
+  featuresGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "2rem",
+  },
+  featureCard: {
+    padding: "2rem 1.5rem",
+    textAlign: "center" as const,
+  },
+  featureIcon: {
+    display: "block",
+    fontSize: "1.75rem",
+    color: "var(--color-primary)",
+    marginBottom: "1rem",
+  },
+  featureTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-xl)",
+    fontWeight: 600,
+    marginBottom: "0.75rem",
+    color: "var(--text-primary)",
+  },
+  featureDesc: {
+    fontSize: "var(--text-base)",
+    color: "var(--text-secondary)",
+    lineHeight: 1.6,
+    margin: 0,
+  },
+
+  /* ── Bottom CTA ──────────────────────────── */
+  bottomCta: {
+    padding: "4rem 0 5rem",
+    borderTop: "1px solid var(--border-primary)",
+  },
+  bottomCtaTitle: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    fontWeight: 700,
+    marginBottom: "0.75rem",
+  },
+  bottomCtaDesc: {
+    fontSize: "var(--text-lg)",
+    color: "var(--text-secondary)",
+    marginBottom: "2rem",
+  },
+
+  /* ── Dashboard ───────────────────────────── */
+  dashboardContainer: {
+    paddingTop: "2rem",
+    paddingBottom: "3rem",
+  },
+  welcomeBar: {
+    marginBottom: "2rem",
+    paddingBottom: "1.25rem",
+    borderBottom: "1px solid var(--border-primary)",
+  },
+  welcomeTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-2xl)",
+    fontWeight: 600,
+    margin: 0,
+  },
+  dashboardGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 340px",
+    gap: "2rem",
+    alignItems: "start",
+  },
+
+  /* ── Main Column ─────────────────────────── */
+  mainColumn: {
+    minWidth: 0,
+  },
+  sectionHeader: {
+    marginBottom: "1rem",
+  },
+  sectionTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-lg)",
+    fontWeight: 600,
+    margin: 0,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.03em",
+    borderBottom: "1px solid var(--text-primary)",
+    paddingBottom: "0.4rem",
+    display: "inline-block",
+  },
+
+  /* ── Feed ─────────────────────────────────── */
+  feedList: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.75rem",
+  },
+  feedCard: {
+    padding: "1.25rem 1.5rem",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.5rem",
+    cursor: "pointer",
+    transition: "all 200ms ease",
+  },
+  feedCardTop: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "var(--text-sm)",
+  },
+  feedCommunity: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+    textDecoration: "none",
+    fontSize: "var(--text-sm)",
+  },
+  feedCommunityDot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  feedDot: {
+    color: "var(--text-tertiary)",
+  },
+  feedTimestamp: {
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-xs)",
+  },
+  feedTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-lg)",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+    textDecoration: "none",
+    lineHeight: 1.35,
+  },
+  feedCardBottom: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "1rem",
+  },
+  feedMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
+    flexWrap: "wrap" as const,
+  },
+  feedAuthor: {
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-sm)",
+  },
+  feedTypeBadge: {
+    fontSize: "var(--text-xs)",
+  },
+  feedVotes: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    color: "var(--color-primary)",
+    fontSize: "var(--text-sm)",
+    fontWeight: 600,
+  },
+  voteArrow: {
+    fontSize: "0.7rem",
+  },
+  voteCount: {
+    fontSize: "var(--text-sm)",
+  },
+
+  /* ── Skeleton ─────────────────────────────── */
+  skeletonCard: {
+    padding: "1.5rem",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.75rem",
+  },
+  skeletonLine: {
+    height: "0.875rem",
+    backgroundColor: "var(--bg-inset)",
+    borderRadius: "var(--radius-sm)",
+  },
+
+  /* ── Empty State ─────────────────────────── */
+  emptyState: {
+    textAlign: "center" as const,
+    padding: "3rem 2rem",
+    border: "1px dashed var(--border-primary)",
+    borderRadius: "var(--radius-md)",
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "0.75rem",
+  },
+  emptyIcon: {
+    fontSize: "2rem",
+    color: "var(--text-tertiary)",
+  },
+  emptyTitle: {
+    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-xl)",
+    margin: 0,
+  },
+  emptyDesc: {
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-base)",
+    margin: 0,
+    maxWidth: "320px",
+  },
+
+  /* ── Sidebar ─────────────────────────────── */
+  sidebar: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "1rem",
+    position: "sticky" as const,
+    top: "calc(var(--navbar-height) + 1rem)",
+  },
+
+  /* ── Profile Card ────────────────────────── */
+  profileCard: {
+    padding: "1.25rem",
+  },
+  profileHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    marginBottom: "1rem",
+  },
+  profileAvatar: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "50%",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "var(--text-lg)",
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  profileName: {
+    fontSize: "var(--text-base)",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+  },
+  profileUsername: {
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
+    fontFamily: "var(--font-mono)",
+  },
+  profileStats: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "0.5rem",
+    padding: "0.75rem 0",
+    borderTop: "1px solid var(--border-primary)",
+  },
+  profileStat: {
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "0.15rem",
+  },
+  statValue: {
+    fontSize: "var(--text-xl)",
+    fontWeight: 700,
+    color: "var(--text-primary)",
+  },
+  statLabel: {
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.04em",
+  },
+  skillsList: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: "0.35rem",
+    paddingTop: "0.75rem",
+    borderTop: "1px solid var(--border-primary)",
+  },
+
+  /* ── Quick Actions ───────────────────────── */
+  quickActions: {
+    padding: "1rem",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.5rem",
+  },
+
+  /* ── Communities Sidebar ─────────────────── */
+  communitiesSidebar: {
+    padding: "1.25rem",
+  },
+  sidebarSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "0.75rem",
+  },
+  sidebarSectionTitle: {
+    fontSize: "var(--text-sm)",
+    fontWeight: 600,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.04em",
+    color: "var(--text-secondary)",
+    margin: 0,
+  },
+  seeAllLink: {
+    fontSize: "var(--text-xs)",
+    fontWeight: 500,
+    color: "var(--color-primary)",
+    textDecoration: "none",
+  },
+  communityList: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.25rem",
+  },
+  communityItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.6rem",
+    padding: "0.5rem 0.4rem",
+    borderRadius: "var(--radius-sm)",
+    textDecoration: "none",
+    color: "inherit",
+    transition: "background-color 150ms ease",
+  },
+  communityDot: {
+    width: "28px",
+    height: "28px",
+    borderRadius: "var(--radius-sm)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "white",
+    fontSize: "var(--text-xs)",
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  communityItemInfo: {
+    display: "flex",
+    flexDirection: "column" as const,
+    minWidth: 0,
+  },
+  communityItemName: {
+    fontSize: "var(--text-sm)",
+    fontWeight: 500,
+    color: "var(--text-primary)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  communityItemMeta: {
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
+  },
+  loadingSmall: {
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
+    fontStyle: "italic",
+    margin: 0,
+  },
+  emptySidebar: {
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
+    fontStyle: "italic",
+    margin: 0,
+  },
+
+  /* ── Footer ──────────────────────────────── */
+  footer: {
+    paddingTop: "2rem",
+    paddingBottom: "2rem",
+    marginTop: "auto",
+  },
+  footerRule: {
+    height: "1px",
+    backgroundColor: "var(--border-primary)",
+    marginBottom: "1.25rem",
+  },
+  footerInner: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
+  },
+  footerBrand: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-sm)",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+  },
+  footerText: {
+    letterSpacing: "0.02em",
+  },
+};

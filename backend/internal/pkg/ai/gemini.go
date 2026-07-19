@@ -11,19 +11,16 @@ import (
 	"time"
 )
 
-// GeminiClient coordinates API calls to Google's generative models.
 type GeminiClient struct {
 	APIKey string
 }
 
-// NewClient creates an AI client reading from GEMINI_API_KEY environment variable.
 func NewClient() *GeminiClient {
 	return &GeminiClient{
 		APIKey: os.Getenv("GEMINI_API_KEY"),
 	}
 }
 
-// ── Gemini JSON Payloads ──────────────────────────
 
 type GeminiRequest struct {
 	Contents []Content `json:"contents"`
@@ -45,9 +42,7 @@ type Candidate struct {
 	Content Content `json:"content"`
 }
 
-// ── Summarize Thread ──────────────────────────────
 
-// SummarizeThread generates a structured executive summary of a post and its comments.
 func (c *GeminiClient) SummarizeThread(title, content string, comments []string) (string, error) {
 	prompt := fmt.Sprintf(
 		"Synthesize the following community discussion into a structured summary with bullet points.\n\n"+
@@ -59,16 +54,13 @@ func (c *GeminiClient) SummarizeThread(title, content string, comments []string)
 	)
 
 	if c.APIKey == "" {
-		// High fidelity mock fallback
 		return c.generateMockSummary(title, content, comments), nil
 	}
 
 	return c.callGemini(prompt)
 }
 
-// ── Draft Wiki Page ───────────────────────────────
 
-// DraftWikiPage drafts a formatted Markdown wiki page from a thread.
 func (c *GeminiClient) DraftWikiPage(title, content string, comments []string) (string, error) {
 	prompt := fmt.Sprintf(
 		"Write a structured, educational Wiki article in Markdown format based on this community discussion.\n\n"+
@@ -86,9 +78,7 @@ func (c *GeminiClient) DraftWikiPage(title, content string, comments []string) (
 	return c.callGemini(prompt)
 }
 
-// ── Answer With Context (RAG) ─────────────────────
 
-// AnswerWithContext queries Gemini using retrieved community context documents.
 func (c *GeminiClient) AnswerWithContext(question string, contextDocs []string) (string, error) {
 	if len(contextDocs) == 0 {
 		if c.APIKey == "" {
@@ -108,7 +98,6 @@ func (c *GeminiClient) AnswerWithContext(question string, contextDocs []string) 
 	)
 
 	if c.APIKey == "" {
-		// High fidelity mock fallback using the retrieved documents
 		var matchedTitles []string
 		for _, doc := range contextDocs {
 			lines := strings.Split(doc, "\n")
@@ -129,9 +118,7 @@ func (c *GeminiClient) AnswerWithContext(question string, contextDocs []string) 
 	return c.callGemini(prompt)
 }
 
-// ── Scan Toxicity ─────────────────────────────────
 
-// ScanToxicity scans text for toxic words and flags potential code blocks or links.
 func (c *GeminiClient) ScanToxicity(text string) (bool, string) {
 	normalized := strings.ToLower(text)
 	toxicKeywords := []string{"stupid", "idiot", "hate you", "kill yourself", "scam", "spam link"}
@@ -145,7 +132,6 @@ func (c *GeminiClient) ScanToxicity(text string) (bool, string) {
 	return false, ""
 }
 
-// ── Gemini REST Caller ────────────────────────────
 
 func (c *GeminiClient) callGemini(prompt string) (string, error) {
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", c.APIKey)
@@ -189,7 +175,6 @@ func (c *GeminiClient) callGemini(prompt string) (string, error) {
 	return "", fmt.Errorf("no candidates returned from gemini")
 }
 
-// ── Heuristic Generators (Offline Mock Fallbacks) ──
 
 func (c *GeminiClient) generateMockSummary(title, content string, comments []string) string {
 	return fmt.Sprintf(

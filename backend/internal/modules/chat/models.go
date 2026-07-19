@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// ── Domain Models ────────────────────────────────
 
 type Channel struct {
 	ID          string    `json:"id"`
@@ -24,29 +23,24 @@ type Message struct {
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 
-	// Joined attributes
 	SenderUsername    string `json:"sender_username,omitempty"`
 	SenderDisplayName string `json:"sender_display_name,omitempty"`
 	SenderAvatarURL   string `json:"sender_avatar_url,omitempty"`
 }
 
-// ── Request Payloads ──────────────────────────────
 
 type CreateChannelRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
-// ── WS WebSocket Frames ──────────────────────────
 
-// WSFrame defines the standard JSON payload structure exchanged over websocket.
 type WSFrame struct {
-	Event   string                 `json:"event"`             // e.g. "room:join", "room:leave", "chat:message", "chat:typing", "presence:update"
-	Topic   string                 `json:"topic"`             // e.g. "channel:<id>", "dm:<user_id>", "presence:<community_id>"
-	Payload map[string]interface{} `json:"payload,omitempty"` // Message details
+	Event   string                 `json:"event"`             
+	Topic   string                 `json:"topic"`             
+	Payload map[string]interface{} `json:"payload,omitempty"` 
 }
 
-// Validate CreateChannelRequest
 func (r *CreateChannelRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 	if len(r.Name) < 2 || len(r.Name) > 50 {

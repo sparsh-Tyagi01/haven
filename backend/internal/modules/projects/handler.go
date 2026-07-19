@@ -11,22 +11,16 @@ import (
 	"github.com/sparsh-Tyagi01/haven/backend/internal/config"
 )
 
-// Handler holds dependencies for project HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new project Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Create Project ───────────────────────────────
-
-// CreateProject handles creation of Kanban projects. Requires staff role.
-// POST /api/v1/communities/{id}/projects
 func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -40,7 +34,6 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify permissions (owner, admin, moderator only)
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" && role != "moderator" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions — only community staff can create projects"})
@@ -74,10 +67,7 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, p)
 }
 
-// ── List Projects ────────────────────────────────
 
-// ListProjects returns all projects in a community.
-// GET /api/v1/communities/{slug}/projects
 func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	communitySlug := chi.URLParam(r, "slug")
 	if communitySlug == "" {
@@ -87,7 +77,6 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Fetch community meta
 	var communityID string
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -141,10 +130,6 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, projects)
 }
 
-// ── Create Task ──────────────────────────────────
-
-// CreateTask adds a new task under a project.
-// POST /api/v1/projects/{projectId}/tasks
 func (h *Handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -158,7 +143,6 @@ func (h *Handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify project exists and get community ID
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT community_id FROM projects WHERE id = $1`, projectID,
@@ -168,7 +152,6 @@ func (h *Handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce community membership to write tasks
 	var isMember bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM memberships WHERE user_id = $1 AND community_id = $2)`,
@@ -199,7 +182,6 @@ func (h *Handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		priority = "medium"
 	}
 
-	// Verify assignee (if set) belongs to the community
 	if req.AssigneeID != nil && *req.AssigneeID != "" {
 		var isAssigneeMember bool
 		h.db.QueryRowContext(r.Context(),
@@ -230,10 +212,7 @@ func (h *Handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, t)
 }
 
-// ── List Tasks ───────────────────────────────────
 
-// ListTasks returns all tasks associated with a project.
-// GET /api/v1/projects/{projectId}/tasks
 func (h *Handler) ListTasks(w http.ResponseWriter, r *http.Request) {
 	projectID := chi.URLParam(r, "projectId")
 	if projectID == "" {
@@ -243,7 +222,6 @@ func (h *Handler) ListTasks(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Fetch project context
 	var communityID string
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -258,7 +236,6 @@ func (h *Handler) ListTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce visibility
 	if visibility != "public" {
 		if userID == "" {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "this community is private"})
@@ -322,10 +299,7 @@ func (h *Handler) ListTasks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, tasks)
 }
 
-// ── Update Task Status ───────────────────────────
 
-// UpdateTaskStatus handles column status bumps (drag-and-drop support).
-// PUT /api/v1/tasks/{taskId}/status
 func (h *Handler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -339,7 +313,6 @@ func (h *Handler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch community ID linked to task
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT p.community_id FROM tasks t
@@ -352,7 +325,6 @@ func (h *Handler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check community membership to move tasks
 	var isMember bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM memberships WHERE user_id = $1 AND community_id = $2)`,
@@ -387,10 +359,7 @@ func (h *Handler) UpdateTaskStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "status updated", "status": req.Status})
 }
 
-// ── Update Task Details ──────────────────────────
 
-// UpdateTaskDetails edits details on a task card.
-// PUT /api/v1/tasks/{taskId}
 func (h *Handler) UpdateTaskDetails(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -404,7 +373,6 @@ func (h *Handler) UpdateTaskDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify task exists and get community ID
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT p.community_id FROM tasks t
@@ -417,7 +385,6 @@ func (h *Handler) UpdateTaskDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check membership
 	var isMember bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM memberships WHERE user_id = $1 AND community_id = $2)`,
@@ -439,7 +406,6 @@ func (h *Handler) UpdateTaskDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify assignee belongs to community (if set)
 	if req.AssigneeID != nil && *req.AssigneeID != "" {
 		var isAssigneeMember bool
 		h.db.QueryRowContext(r.Context(),
@@ -467,7 +433,6 @@ func (h *Handler) UpdateTaskDetails(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "task details updated"})
 }
 
-// ── Helpers ──────────────────────────────────────
 
 func (h *Handler) getUserRole(r *http.Request, userID, communityID string) string {
 	var role string

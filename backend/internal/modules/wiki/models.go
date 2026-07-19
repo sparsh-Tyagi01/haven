@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// ── Domain Models ────────────────────────────────
-
-// WikiPage represents a collaborative, version-controlled wiki document in a community.
 type WikiPage struct {
 	ID          string    `json:"id"`
 	CommunityID string    `json:"community_id"`
@@ -20,29 +17,23 @@ type WikiPage struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 
-	// Enriched fields
 	CreatorUsername    string `json:"creator_username,omitempty"`
 	CreatorDisplayName string `json:"creator_display_name,omitempty"`
 	CreatorAvatarURL   string `json:"creator_avatar_url,omitempty"`
 }
 
-// ── Request Models ───────────────────────────────
 
-// CreateWikiRequest is the payload for creating a new wiki page.
 type CreateWikiRequest struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
 
-// UpdateWikiRequest is the payload for editing a wiki page.
 type UpdateWikiRequest struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
 
-// ── Validation ───────────────────────────────────
 
-// Validate checks CreateWikiRequest for constraints.
 func (r *CreateWikiRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 
@@ -56,7 +47,6 @@ func (r *CreateWikiRequest) Validate() map[string]string {
 	return errors
 }
 
-// GenerateSlug creates a URL-friendly slug from a wiki title.
 func GenerateSlug(title string) string {
 	slug := strings.ToLower(title)
 	reg := regexp.MustCompile(`[^a-z0-9]+`)

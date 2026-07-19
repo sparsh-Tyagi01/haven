@@ -9,7 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// NewRedis creates a Redis client from a connection URL and verifies connectivity.
 func NewRedis(redisURL string) (*redis.Client, error) {
 	opts, err := redis.ParseURL(redisURL)
 	if err != nil {
@@ -24,7 +23,6 @@ func NewRedis(redisURL string) (*redis.Client, error) {
 
 	client := redis.NewClient(opts)
 
-	// Verify connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

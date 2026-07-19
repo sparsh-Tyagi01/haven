@@ -9,7 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Client represents an active WebSocket connection.
 type Client struct {
 	Hub    *Hub
 	Conn   *websocket.Conn
@@ -19,7 +18,6 @@ type Client struct {
 	mu     sync.Mutex
 }
 
-// Hub coordinates all WebSocket client registrations and room broadcasts.
 type Hub struct {
 	clients    map[*Client]bool
 	register   chan *Client
@@ -29,7 +27,6 @@ type Hub struct {
 	mu         sync.RWMutex
 }
 
-// NewHub constructs a websocket Hub coordinating local connections.
 func NewHub(rdb *redis.Client) *Hub {
 	h := &Hub{
 		clients:    make(map[*Client]bool),
@@ -42,7 +39,6 @@ func NewHub(rdb *redis.Client) *Hub {
 	return h
 }
 
-// Run executes registration loops and room broadcasts.
 func (h *Hub) Run() {
 	for {
 		select {
@@ -60,21 +56,18 @@ func (h *Hub) Run() {
 			h.mu.Unlock()
 
 		case frame := <-h.broadcast:
-			// Publish to Redis so all instances receive the broadcast
 			if h.rdb != nil {
 				payloadBytes, err := json.Marshal(frame)
 				if err == nil {
 					h.rdb.Publish(context.Background(), "haven:chat", payloadBytes)
 				}
 			} else {
-				// Fallback to local-only broadcast if Redis is nil
 				h.LocalBroadcast(frame)
 			}
 		}
 	}
 }
 
-// LocalBroadcast delivers a WSFrame to all clients joined to the frame's topic.
 func (h *Hub) LocalBroadcast(frame WSFrame) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -93,7 +86,6 @@ func (h *Hub) LocalBroadcast(frame WSFrame) {
 			select {
 			case client.Send <- frameBytes:
 			default:
-				// If send channel is blocked, unregister client
 				go func(c *Client) {
 					h.unregister <- c
 				}(client)
@@ -102,7 +94,6 @@ func (h *Hub) LocalBroadcast(frame WSFrame) {
 	}
 }
 
-// startRedisSubscription listens to Redis channels and triggers local broadcasts.
 func (h *Hub) startRedisSubscription() {
 	if h.rdb == nil {
 		return

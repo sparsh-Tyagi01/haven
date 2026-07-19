@@ -4,9 +4,6 @@ import (
 	"time"
 )
 
-// ── Domain Models ────────────────────────────────
-
-// Event represents a community schedule meeting, virtual stream, AMA, or physical meetup.
 type Event struct {
 	ID          string     `json:"id"`
 	CommunityID string     `json:"community_id"`
@@ -19,26 +16,20 @@ type Event struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 
-	// RSVP Aggregates
 	GoingCount      int `json:"going_count"`
 	InterestedCount int `json:"interested_count"`
 	DeclinedCount   int `json:"declined_count"`
-	UserRSVPStatus  string `json:"user_rsvp_status,omitempty"` // The current user's RSVP status (going | interested | declined or empty)
+	UserRSVPStatus  string `json:"user_rsvp_status,omitempty"` 
 }
 
-// RSVP represents a user's RSVP record.
 type RSVP struct {
 	ID        string    `json:"id"`
 	EventID   string    `json:"event_id"`
 	UserID    string    `json:"user_id"`
-	Status    string    `json:"status"` // going | interested | declined
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
-
-// ── Request Models ───────────────────────────────
-
-// CreateEventRequest is the payload to schedule a new event.
 type CreateEventRequest struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
@@ -47,7 +38,6 @@ type CreateEventRequest struct {
 	EndTime     *time.Time `json:"end_time,omitempty"`
 }
 
-// UpdateEventRequest is the payload to edit details.
 type UpdateEventRequest struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
@@ -56,14 +46,10 @@ type UpdateEventRequest struct {
 	EndTime     *time.Time `json:"end_time,omitempty"`
 }
 
-// RSVPRequest registers or shifts user response.
 type RSVPRequest struct {
-	Status string `json:"status"` // going | interested | declined (empty to revoke/remove)
+	Status string `json:"status"`
 }
 
-// ── Validation ───────────────────────────────────
-
-// Validate checks CreateEventRequest validation boundaries.
 func (r *CreateEventRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 
@@ -80,7 +66,6 @@ func (r *CreateEventRequest) Validate() map[string]string {
 	return errors
 }
 
-// ValidRSVPStatuses holds allowed RSVP response values.
 var ValidRSVPStatuses = map[string]bool{
 	"going":      true,
 	"interested": true,

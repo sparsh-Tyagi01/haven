@@ -63,32 +63,37 @@ export default function RegisterPage() {
 
   return (
     <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
+      <div style={styles.card}>
+        {/* Brand */}
         <div style={styles.brandSection}>
-          <h1 style={styles.brandTitle}>THE HAVEN</h1>
-          <p style={styles.brandSub}>No. 1 — A Noise-Free Knowledge Network</p>
+          <Link href="/" style={styles.brandLink}>
+            <span style={styles.brandIcon}>H</span>
+          </Link>
+          <h1 style={styles.title}>Join Haven</h1>
+          <p style={styles.subtitle}>Create your account and start exploring</p>
         </div>
 
+        {/* Grid */}
         <div style={styles.gridContainer}>
-          {/* Left Column: Philosophical Editorial Context */}
+          {/* Left: Editorial context */}
           <div style={styles.editorialCol}>
-            <h2 style={styles.essayTitle}>On Community-First Integrity</h2>
-            <p style={styles.essayText}>
-              By establishing your Haven identity, you become a citizen of focused, self-moderated collectives. 
+            <h2 style={styles.editorialTitle}>
+              Communities that grow smarter
+            </h2>
+            <p style={styles.editorialText}>
+              Your Haven profile is your identity across all communities.
+              Reputation is earned through helpful contributions — not follower
+              counts. Join communities, share knowledge, and build something
+              lasting.
             </p>
-            <p style={styles.essayText}>
-              Your display name and credentials will represent your status. Reputation is community-specific, earned
-              through active, helpful verification of knowledge, roadmap updates, and constructive feedback.
-            </p>
-            <div style={styles.divider}></div>
-            <span style={styles.dateStamp}>Decentralized & Encrypted Session Protocol</span>
+            <div style={styles.divider} />
+            <span style={styles.stamp}>
+              Free to join · Community-driven · Knowledge preserved
+            </span>
           </div>
 
-          {/* Right Column: High-Fidelity Register Form */}
+          {/* Right: Register form */}
           <div style={styles.formCol}>
-            <h2 style={styles.formTitle}>Join the Haven</h2>
-            <p style={styles.formSub}>Create a new citizenship in the network.</p>
-
             {error && (
               <div style={styles.errorAlert}>
                 <span style={styles.errorText}>{error}</span>
@@ -114,7 +119,7 @@ export default function RegisterPage() {
                 <input
                   id="email"
                   type="email"
-                  placeholder="name@domain.com"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isSubmitting}
@@ -140,7 +145,7 @@ export default function RegisterPage() {
                 <input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Re-type password"
+                  placeholder="Re-enter password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isSubmitting}
@@ -150,11 +155,11 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary btn-lg"
                 style={styles.submitBtn}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Creating citizenship..." : "Establish Account"}
+                {isSubmitting ? "Creating account..." : "Create Account"}
               </button>
             </form>
 
@@ -171,7 +176,6 @@ export default function RegisterPage() {
   );
 }
 
-// Reuse gorgeous editorial styling
 const styles: { [key: string]: React.CSSProperties } = {
   pageContainer: {
     minHeight: "100vh",
@@ -179,126 +183,124 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     justifyContent: "center",
     padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
+    backgroundColor: "var(--bg-primary)",
   },
-  editorialFrame: {
+  card: {
     width: "100%",
-    maxWidth: "960px",
+    maxWidth: "880px",
     backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-lg)",
     padding: "2.5rem",
     boxShadow: "var(--shadow-lg)",
-    position: "relative",
   },
   brandSection: {
     textAlign: "center",
-    borderBottom: "1px double var(--text-main)",
-    paddingBottom: "1.5rem",
     marginBottom: "2.5rem",
   },
-  brandTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "3.5rem",
-    fontWeight: 700,
-    letterSpacing: "-0.04em",
-    textTransform: "uppercase",
-    border: "none",
-    padding: 0,
-    margin: 0,
-    lineHeight: 1,
+  brandLink: {
+    display: "inline-block",
+    textDecoration: "none",
+    marginBottom: "1.25rem",
   },
-  brandSub: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.8rem",
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.15em",
-    color: "var(--text-muted)",
-    marginTop: "0.5rem",
+  brandIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "44px",
+    height: "44px",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    fontFamily: "var(--font-display)",
+    fontWeight: 700,
+    fontSize: "var(--text-xl)",
+  },
+  title: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    fontWeight: 700,
+    letterSpacing: "-0.02em",
+    marginBottom: "0.35rem",
+    border: "none",
+  },
+  subtitle: {
+    fontSize: "var(--text-base)",
+    color: "var(--text-tertiary)",
+    margin: 0,
   },
   gridContainer: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: "3rem",
+    gap: "2.5rem",
   },
   editorialCol: {
-    borderRight: "1px solid var(--border-color)",
+    borderRight: "1px solid var(--border-primary)",
     paddingRight: "2.5rem",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
-  essayTitle: {
+  editorialTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.5rem",
+    fontSize: "var(--text-xl)",
     fontWeight: 600,
     fontStyle: "italic",
-    marginBottom: "1.25rem",
-    color: "var(--text-main)",
-  },
-  essayText: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.92rem",
-    color: "var(--text-muted)",
-    lineHeight: 1.7,
     marginBottom: "1rem",
+    color: "var(--text-primary)",
+  },
+  editorialText: {
+    fontSize: "var(--text-base)",
+    color: "var(--text-secondary)",
+    lineHeight: 1.7,
+    margin: 0,
   },
   divider: {
     height: "1px",
-    backgroundColor: "var(--border-color)",
+    backgroundColor: "var(--border-primary)",
     margin: "1.5rem 0",
   },
-  dateStamp: {
+  stamp: {
     fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
     textTransform: "uppercase",
+    letterSpacing: "0.04em",
   },
   formCol: {
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
   },
-  formTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2rem",
-    fontWeight: 600,
-    marginBottom: "0.5rem",
-  },
-  formSub: {
-    fontSize: "0.95rem",
-    color: "var(--text-muted)",
-    marginBottom: "2rem",
-  },
   errorAlert: {
-    backgroundColor: "rgba(168, 61, 49, 0.08)",
-    borderLeft: "3px solid var(--error)",
-    padding: "0.75rem 1rem",
-    marginBottom: "1.5rem",
+    backgroundColor: "var(--color-error-light)",
+    borderLeft: "3px solid var(--color-error)",
+    padding: "0.65rem 1rem",
+    marginBottom: "1.25rem",
+    borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
   },
   errorText: {
-    fontSize: "0.85rem",
-    color: "var(--error)",
+    fontSize: "var(--text-sm)",
+    color: "var(--color-error)",
     fontWeight: 500,
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
   },
   submitBtn: {
     width: "100%",
-    padding: "1rem",
     marginTop: "0.5rem",
   },
   footerLinks: {
     marginTop: "1.5rem",
     textAlign: "center",
-    fontSize: "0.9rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
   link: {
     fontWeight: 600,
+    color: "var(--color-primary)",
     textDecoration: "underline",
   },
 };

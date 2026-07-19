@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
+import Navbar from "../../components/Navbar";
 import { useAuth } from "../../../hooks/useAuth";
 import {
   useCommunity,
@@ -104,27 +105,31 @@ export default function CommunityDetailPage({
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner} />
-        <p style={styles.loadingText}>Loading community data...</p>
+      <div className="page-wrapper">
+        <Navbar />
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner} />
+          <p style={styles.loadingText}>Loading community...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !community) {
     return (
-      <div style={styles.pageContainer}>
-        <div style={styles.editorialFrame}>
-          <div style={styles.errorState}>
+      <div className="page-wrapper">
+        <Navbar />
+        <main className="page-content">
+          <div className="container" style={styles.errorState}>
             <h2 style={styles.errorTitle}>Community Not Found</h2>
             <p style={styles.errorText}>
               {error || "The requested community does not exist or you do not have permission to view it."}
             </p>
             <Link href="/communities" className="btn btn-secondary">
-              ← Return to Registry
+              ← Back to Communities
             </Link>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -143,30 +148,29 @@ export default function CommunityDetailPage({
 
   const roleColor = (role: string) => {
     const colors: Record<string, string> = {
-      owner: "var(--accent)",
-      admin: "var(--primary)",
+      owner: "var(--color-accent)",
+      admin: "var(--color-primary)",
       moderator: "#5e4a7a",
       expert: "#2d6a6a",
-      member: "var(--text-muted)",
-      guest: "var(--text-light)",
+      member: "var(--text-secondary)",
+      guest: "var(--text-tertiary)",
     };
-    return colors[role] || "var(--text-muted)";
+    return colors[role] || "var(--text-secondary)";
   };
 
   return (
-    <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.headerTop}>
-            <Link href="/communities" style={styles.backLink}>
-              ← Community Registry
-            </Link>
-            <span style={styles.headerMeta}>
-              /{community.slug}
-            </span>
-          </div>
-        </header>
+    <div className="page-wrapper">
+      <Navbar />
+      <main className="page-content">
+      <div className="container" style={styles.pageInner}>
+        {/* Breadcrumb */}
+        <div style={styles.breadcrumb}>
+          <Link href="/communities" style={styles.breadcrumbLink}>
+            Communities
+          </Link>
+          <span style={styles.breadcrumbSep}>›</span>
+          <span style={styles.breadcrumbCurrent}>{community.name}</span>
+        </div>
 
         {/* Community Banner */}
         <div
@@ -240,31 +244,26 @@ export default function CommunityDetailPage({
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                     <Link
                       href={`/communities/${community.slug}/chat`}
-                      className="btn btn-primary"
-                      style={{ padding: "0.4rem 1rem", fontSize: "0.85rem", textDecoration: "none" }}
+                      className="btn btn-primary btn-sm"
+                      style={{ textDecoration: "none" }}
                     >
-                      💬 Live Chat Room
+                      💬 Chat
                     </Link>
                     <Link
                       href={`/communities/${community.slug}/assistant`}
-                      className="btn btn-secondary"
+                      className="btn btn-accent btn-sm"
                       style={{
-                        padding: "0.4rem 1rem",
-                        fontSize: "0.85rem",
                         textDecoration: "none",
-                        backgroundColor: "var(--accent)",
-                        color: "white",
-                        border: "none",
+
                       }}
                     >
-                      🤖 AI Assistant
+                      🤖 Assistant
                     </Link>
                     {userMembership.role !== "owner" && (
                       <button
                         onClick={handleLeave}
                         disabled={actionLoading}
-                        className="btn btn-secondary"
-                        style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}
+                        className="btn btn-secondary btn-sm"
                       >
                         {actionLoading ? "Leaving..." : "Leave"}
                       </button>
@@ -616,16 +615,8 @@ export default function CommunityDetailPage({
           </div>
         </div>
 
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerBorder} />
-          <div style={styles.footerGrid}>
-            <span>{community.name}</span>
-            <span style={styles.textCenter}>Haven Network</span>
-            <span style={{ textAlign: "right" }}>Phase 2</span>
-          </div>
-        </footer>
       </div>
+      </main>
     </div>
   );
 }
@@ -634,8 +625,8 @@ export default function CommunityDetailPage({
 
 function stringToColor(str: string): string {
   const colors = [
-    "#4a5c43", "#b05c42", "#3c6e47", "#5e4a7a",
-    "#6b5b3e", "#2d6a6a", "#8b5e3c", "#4a6b8a",
+    "#2d4a3e", "#8b3a3a", "#4a6b8a", "#6b5b3e",
+    "#5e4a7a", "#2d6a6a", "#8b5e3c", "#3c6e47",
   ];
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -647,12 +638,9 @@ function stringToColor(str: string): string {
 // ── Styles ───────────────────────────────────────
 
 const styles: { [key: string]: React.CSSProperties } = {
-  pageContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
+  pageInner: {
+    paddingTop: "1.5rem",
+    paddingBottom: "3rem",
   },
   loadingContainer: {
     minHeight: "100vh",
@@ -660,80 +648,66 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "var(--bg-main)",
   },
   spinner: {
-    width: "40px",
-    height: "40px",
-    border: "3px solid var(--border-light)",
-    borderTop: "3px solid var(--primary)",
+    width: "28px",
+    height: "28px",
+    border: "2px solid var(--border-primary)",
+    borderTop: "2px solid var(--color-primary)",
     borderRadius: "50%",
-    animation: "spin 1s linear infinite",
+    animation: "spin 0.8s linear infinite",
     marginBottom: "1rem",
   },
   loadingText: {
-    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     fontStyle: "italic",
-    fontSize: "1.1rem",
-    color: "var(--text-muted)",
   },
-  editorialFrame: {
-    width: "100%",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
-    padding: "2.5rem",
-    boxShadow: "var(--shadow-lg)",
+  breadcrumb: {
     display: "flex",
-    flexDirection: "column",
-    flexGrow: 1,
-  },
-  header: {
+    alignItems: "center",
+    gap: "0.5rem",
     marginBottom: "1.5rem",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
-  headerTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.5rem",
-  },
-  backLink: {
-    color: "var(--primary)",
+  breadcrumbLink: {
+    color: "var(--color-primary)",
     textDecoration: "none",
-    fontWeight: 600,
+    fontWeight: 500,
   },
-  headerMeta: {
-    letterSpacing: "0.05em",
+  breadcrumbSep: {
+    color: "var(--text-tertiary)",
+  },
+  breadcrumbCurrent: {
+    color: "var(--text-secondary)",
+    fontWeight: 500,
   },
   // Banner
   banner: {
-    height: "160px",
+    height: "140px",
     width: "100%",
     backgroundSize: "cover",
     backgroundPosition: "center",
     position: "relative",
     marginBottom: "1.5rem",
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-lg)",
   },
   bannerOverlay: {
     position: "absolute",
-    bottom: "-30px",
-    left: "2rem",
+    bottom: "-28px",
+    left: "1.5rem",
   },
   largeLogo: {
-    width: "72px",
-    height: "72px",
-    borderRadius: "50%",
+    width: "64px",
+    height: "64px",
+    borderRadius: "var(--radius-md)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
-    fontSize: "2rem",
+    fontSize: "1.75rem",
     fontWeight: 700,
     border: "3px solid var(--bg-surface)",
     boxShadow: "var(--shadow-md)",
@@ -746,15 +720,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "2rem",
     marginTop: "2rem",
     paddingBottom: "2rem",
-    borderBottom: "1px solid var(--border-color)",
+    borderBottom: "1px solid var(--border-primary)",
     marginBottom: "2rem",
   },
   infoMain: {
     flex: 1,
   },
   communityName: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2.5rem",
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-4xl)",
     fontWeight: 700,
     letterSpacing: "-0.03em",
     margin: 0,
@@ -770,42 +744,42 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexWrap: "wrap" as const,
   },
   categoryBadge: {
-    fontSize: "0.7rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     textTransform: "uppercase",
     letterSpacing: "0.04em",
-    padding: "0.2rem 0.6rem",
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    borderRadius: "2px",
+    padding: "0.15rem 0.5rem",
+    backgroundColor: "var(--color-primary-light)",
+    color: "var(--color-primary)",
+    borderRadius: "var(--radius-sm)",
   },
   visibilityBadge: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-secondary)",
   },
   metaStat: {
-    fontSize: "0.8rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
   description: {
-    fontSize: "1.05rem",
+    fontSize: "var(--text-md)",
     lineHeight: 1.7,
-    color: "var(--text-main)",
+    color: "var(--text-secondary)",
     marginTop: "1rem",
     marginBottom: "0.75rem",
   },
   tagRow: {
     display: "flex",
-    gap: "0.4rem",
+    gap: "0.35rem",
     flexWrap: "wrap" as const,
   },
   tag: {
-    fontSize: "0.7rem",
+    fontSize: "var(--text-xs)",
     padding: "0.15rem 0.4rem",
-    backgroundColor: "var(--bg-surface-hover)",
-    color: "var(--text-muted)",
-    borderRadius: "2px",
-    border: "1px solid var(--border-light)",
+    backgroundColor: "var(--bg-inset)",
+    color: "var(--text-secondary)",
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid var(--border-primary)",
   },
   infoActions: {
     display: "flex",
@@ -821,8 +795,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.5rem",
   },
   roleLabel: {
-    fontSize: "0.8rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-secondary)",
     fontFamily: "var(--font-mono)",
     textTransform: "uppercase",
     letterSpacing: "0.04em",
@@ -831,81 +805,80 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "0.7rem 1.75rem",
     whiteSpace: "nowrap",
   },
-  // Content grid
   contentGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 280px",
-    gap: "2.5rem",
-    flexGrow: 1,
+    gap: "2rem",
+    alignItems: "start",
   },
   mainCol: {
     display: "flex",
     flexDirection: "column",
     gap: "1.5rem",
+    minWidth: 0,
   },
   sideCol: {
     display: "flex",
     flexDirection: "column",
     gap: "1rem",
+    position: "sticky" as const,
+    top: "calc(var(--navbar-height) + 1rem)",
   },
   sectionHeader: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.15rem",
+    fontSize: "var(--text-lg)",
     fontWeight: 600,
-    borderBottom: "1px solid var(--text-main)",
+    borderBottom: "1px solid var(--text-primary)",
     paddingBottom: "0.4rem",
     marginBottom: "0.75rem",
-    textTransform: "uppercase",
+    textTransform: "uppercase" as const,
     letterSpacing: "0.02em",
-    border: "none",
-    borderBottomWidth: "1px",
-    borderBottomStyle: "solid",
-    borderBottomColor: "var(--text-main)",
   },
   comingSoonCard: {
     padding: "2rem",
-    border: "1px dashed var(--border-color)",
-    backgroundColor: "var(--bg-surface-hover)",
+    border: "1px dashed var(--border-primary)",
+    backgroundColor: "var(--bg-inset)",
     textAlign: "center",
+    borderRadius: "var(--radius-md)",
   },
   comingSoonText: {
-    fontSize: "0.9rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     lineHeight: 1.6,
     margin: 0,
   },
   // Members sidebar
   loadingSmall: {
-    fontSize: "0.85rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     fontStyle: "italic",
   },
   noMembers: {
-    fontSize: "0.85rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     fontStyle: "italic",
   },
   memberList: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
+    gap: "0.5rem",
   },
   memberItem: {
     display: "flex",
     alignItems: "center",
-    gap: "0.65rem",
-    padding: "0.5rem",
-    borderBottom: "1px solid var(--border-light)",
+    gap: "0.6rem",
+    padding: "0.4rem",
+    borderBottom: "1px solid var(--border-primary)",
   },
   memberAvatar: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
+    width: "30px",
+    height: "30px",
+    borderRadius: "var(--radius-sm)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
-    fontSize: "0.8rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     flexShrink: 0,
   },
@@ -914,59 +887,36 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
   },
   memberName: {
-    fontSize: "0.85rem",
+    fontSize: "var(--text-sm)",
     fontWeight: 600,
-    color: "var(--text-main)",
+    color: "var(--text-primary)",
   },
   memberRole: {
-    fontSize: "0.7rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 500,
     textTransform: "uppercase",
     letterSpacing: "0.03em",
   },
-  // Error state
   errorState: {
     textAlign: "center",
-    padding: "4rem 2rem",
+    padding: "5rem 2rem",
   },
   errorTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2rem",
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
     marginBottom: "1rem",
   },
   errorText: {
-    color: "var(--text-muted)",
-    fontSize: "1rem",
+    color: "var(--text-secondary)",
+    fontSize: "var(--text-md)",
     marginBottom: "2rem",
     lineHeight: 1.6,
-  },
-  // Footer
-  footer: {
-    marginTop: "auto",
-    paddingTop: "2.5rem",
-  },
-  footerBorder: {
-    height: "4px",
-    borderTop: "1px solid var(--text-main)",
-    borderBottom: "1px solid var(--text-main)",
-    marginBottom: "0.75rem",
-  },
-  footerGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-  },
-  textCenter: {
-    textAlign: "center",
   },
   // Phase 3: Community feed style tokens
   feedSection: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
+    gap: "1rem",
     marginBottom: "2rem",
   },
   feedSectionHeader: {
@@ -976,105 +926,109 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   feedFilters: {
     display: "flex",
-    gap: "0.5rem",
+    gap: "0.35rem",
     flexWrap: "wrap",
-    borderBottom: "1px solid var(--border-light)",
+    borderBottom: "1px solid var(--border-primary)",
     paddingBottom: "0.75rem",
   },
   feedFilterBtn: {
-    padding: "0.35rem 0.75rem",
-    fontSize: "0.75rem",
-    fontWeight: 600,
-    border: "1px solid var(--border-color)",
-    borderRadius: "2px",
+    padding: "0.3rem 0.7rem",
+    fontSize: "var(--text-xs)",
+    fontWeight: 500,
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-full)",
     backgroundColor: "var(--bg-surface)",
-    color: "var(--text-muted)",
+    color: "var(--text-tertiary)",
     cursor: "pointer",
-    transition: "all 0.15s ease",
+    transition: "all 150ms ease",
     fontFamily: "var(--font-sans)",
   },
   feedFilterBtnActive: {
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    border: "1px solid var(--primary)",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    border: "1px solid var(--color-primary)",
   },
   postsList: {
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
+    gap: "0.75rem",
   },
   postFeedItem: {
     display: "flex",
-    gap: "1.25rem",
-    padding: "1.25rem",
-    border: "1px solid var(--border-color)",
+    gap: "1rem",
+    padding: "1rem 1.25rem",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-md)",
     backgroundColor: "var(--bg-surface)",
     alignItems: "center",
+    transition: "border-color 150ms ease",
   },
   postVoteScore: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    minWidth: "40px",
-    color: "var(--primary)",
-    fontSize: "0.85rem",
+    minWidth: "36px",
+    color: "var(--color-primary)",
+    fontSize: "var(--text-sm)",
   },
   postBodyInfo: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
-    gap: "0.4rem",
+    gap: "0.35rem",
   },
   postTitleRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: "1rem",
+    gap: "0.75rem",
     flexWrap: "wrap",
   },
   postLinkTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.15rem",
+    fontSize: "var(--text-md)",
     fontWeight: 600,
-    color: "var(--text-main)",
+    color: "var(--text-primary)",
     textDecoration: "none",
   },
   solvedTag: {
-    fontSize: "0.65rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 700,
-    padding: "0.2rem 0.5rem",
-    borderRadius: "2px",
+    padding: "0.15rem 0.45rem",
+    borderRadius: "var(--radius-sm)",
     textTransform: "uppercase",
   },
   postMetaLine: {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   itemTypeBadge: {
-    fontSize: "0.65rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     textTransform: "uppercase",
     padding: "0.1rem 0.4rem",
-    backgroundColor: "var(--bg-main)",
-    border: "1px solid var(--border-light)",
-    color: "var(--text-muted)",
+    backgroundColor: "var(--bg-inset)",
+    border: "1px solid var(--border-primary)",
+    color: "var(--text-secondary)",
+    borderRadius: "var(--radius-sm)",
   },
   noPostsCard: {
     padding: "3rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
     textAlign: "center",
-    color: "var(--text-light)",
+    color: "var(--text-tertiary)",
+    borderRadius: "var(--radius-md)",
   },
   // Phase 4: Wiki index styles
   wikiSection: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
+    gap: "1rem",
     marginBottom: "2rem",
-    borderTop: "1px solid var(--border-color)",
+    borderTop: "1px solid var(--border-primary)",
     paddingTop: "2rem",
     marginTop: "2rem",
   },
@@ -1086,61 +1040,61 @@ const styles: { [key: string]: React.CSSProperties } = {
   wikiList: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
+    gap: "0.5rem",
   },
   wikiItem: {
     padding: "1rem 1.25rem",
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-md)",
     backgroundColor: "var(--bg-surface)",
   },
   wikiBody: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.35rem",
+    gap: "0.3rem",
   },
   wikiTitleRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: "1rem",
+    gap: "0.75rem",
   },
   wikiLinkTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.1rem",
+    fontSize: "var(--text-md)",
     fontWeight: 600,
-    color: "var(--text-main)",
+    color: "var(--text-primary)",
     textDecoration: "none",
   },
   miniVersionBadge: {
-    fontSize: "0.65rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     padding: "0.15rem 0.4rem",
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "2px",
-    textTransform: "uppercase",
+    backgroundColor: "var(--color-primary-light)",
+    color: "var(--color-primary)",
+    borderRadius: "var(--radius-sm)",
   },
   wikiMeta: {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   noWikiCard: {
     padding: "2.5rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
     textAlign: "center",
-    color: "var(--text-light)",
+    color: "var(--text-tertiary)",
+    borderRadius: "var(--radius-md)",
   },
   // Phase 5: Projects / Kanban list styles
   projectsSection: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
+    gap: "1rem",
     marginBottom: "2rem",
-    borderTop: "1px solid var(--border-color)",
+    borderTop: "1px solid var(--border-primary)",
     paddingTop: "2rem",
     marginTop: "2rem",
   },
@@ -1152,47 +1106,48 @@ const styles: { [key: string]: React.CSSProperties } = {
   projectsList: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
+    gap: "0.5rem",
   },
   projectItem: {
     padding: "1rem 1.25rem",
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-md)",
     backgroundColor: "var(--bg-surface)",
   },
   projectBody: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.35rem",
+    gap: "0.3rem",
   },
   projectLinkTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.1rem",
+    fontSize: "var(--text-md)",
     fontWeight: 600,
-    color: "var(--text-main)",
+    color: "var(--text-primary)",
     textDecoration: "none",
   },
   projectDescriptionText: {
-    fontSize: "0.85rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-secondary)",
     margin: 0,
   },
   projectMetaText: {
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   noProjectsCard: {
     padding: "2.5rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
     textAlign: "center",
-    color: "var(--text-light)",
+    color: "var(--text-tertiary)",
+    borderRadius: "var(--radius-md)",
   },
-  // Phase 6: Events & RSVP styles
   eventsSection: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
+    gap: "1rem",
     marginBottom: "2rem",
-    borderTop: "1px solid var(--border-color)",
+    borderTop: "1px solid var(--border-primary)",
     paddingTop: "2rem",
     marginTop: "2rem",
   },
@@ -1204,11 +1159,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   eventsList: {
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
+    gap: "0.75rem",
   },
   eventItem: {
     padding: "1.25rem",
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-md)",
     backgroundColor: "var(--bg-surface)",
   },
   eventBody: {
@@ -1221,37 +1177,36 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: "space-between",
     alignItems: "baseline",
     flexWrap: "wrap",
-    gap: "1rem",
+    gap: "0.75rem",
   },
   eventTitleText: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.15rem",
+    fontSize: "var(--text-md)",
     fontWeight: 600,
     margin: 0,
-    color: "var(--text-main)",
+    color: "var(--text-primary)",
   },
   eventTimeBadge: {
-    fontSize: "0.75rem",
+    fontSize: "var(--text-xs)",
     fontFamily: "var(--font-mono)",
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--color-primary-light)",
+    color: "var(--color-primary)",
     padding: "0.15rem 0.4rem",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-sm)",
   },
   eventDescriptionText: {
-    fontSize: "0.9rem",
+    fontSize: "var(--text-sm)",
     lineHeight: 1.5,
     margin: 0,
-    color: "var(--text-muted)",
+    color: "var(--text-secondary)",
   },
   eventLocationText: {
-    fontSize: "0.85rem",
+    fontSize: "var(--text-sm)",
     margin: 0,
-    color: "var(--text-light)",
+    color: "var(--text-tertiary)",
   },
   eventLink: {
-    color: "var(--primary)",
+    color: "var(--color-primary)",
     fontWeight: 600,
     textDecoration: "underline",
   },
@@ -1259,7 +1214,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderTop: "1px dashed var(--border-light)",
+    borderTop: "1px dashed var(--border-primary)",
     paddingTop: "0.75rem",
     marginTop: "0.25rem",
     flexWrap: "wrap",
@@ -1268,34 +1223,35 @@ const styles: { [key: string]: React.CSSProperties } = {
   rsvpStats: {
     display: "flex",
     gap: "1rem",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   rsvpActions: {
     display: "flex",
-    gap: "0.5rem",
+    gap: "0.4rem",
   },
   rsvpBtn: {
-    padding: "0.25rem 0.75rem",
-    fontSize: "0.75rem",
-    fontWeight: 600,
-    border: "1px solid var(--border-color)",
-    borderRadius: "2px",
+    padding: "0.25rem 0.7rem",
+    fontSize: "var(--text-xs)",
+    fontWeight: 500,
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-full)",
     backgroundColor: "var(--bg-surface)",
-    color: "var(--text-muted)",
+    color: "var(--text-secondary)",
     cursor: "pointer",
-    transition: "all 0.15s ease",
+    transition: "all 150ms ease",
     fontFamily: "var(--font-sans)",
   },
   rsvpBtnActive: {
-    backgroundColor: "var(--primary)",
-    color: "var(--bg-surface)",
-    border: "1px solid var(--primary)",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    border: "1px solid var(--color-primary)",
   },
   noEventsCard: {
     padding: "2.5rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
     textAlign: "center",
-    color: "var(--text-light)",
+    color: "var(--text-tertiary)",
+    borderRadius: "var(--radius-md)",
   },
 };

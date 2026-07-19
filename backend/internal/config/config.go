@@ -6,43 +6,33 @@ import (
 	"time"
 )
 
-// Config holds all application configuration loaded from environment variables.
 type Config struct {
-	// App
 	Env         string
 	Port        string
 	FrontendURL string
 
-	// Database
 	DatabaseURL string
 
-	// Redis
 	RedisURL string
 
-	// OpenSearch
 	OpenSearchURL      string
 	OpenSearchUsername  string
 	OpenSearchPassword string
 
-	// JWT
 	JWTSecret             string
 	JWTAccessTokenExpiry  time.Duration
 	JWTRefreshTokenExpiry time.Duration
 
-	// OAuth — Google
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
 
-	// OAuth — GitHub
 	GitHubClientID     string
 	GitHubClientSecret string
 	GitHubRedirectURL  string
 
-	// Community
 	CommunityProposalThreshold int
 
-	// S3 / MinIO
 	S3BucketName       string
 	S3Region           string
 	S3Endpoint         string
@@ -50,8 +40,7 @@ type Config struct {
 	AWSSecretAccessKey string
 }
 
-// Load reads environment variables and returns a populated Config.
-// Defaults are provided for local development.
+
 func Load() *Config {
 	return &Config{
 		Env:         getEnv("APP_ENV", "development"),
@@ -88,7 +77,6 @@ func Load() *Config {
 	}
 }
 
-// getEnv reads an environment variable or returns a fallback value.
 func getEnv(key, fallback string) string {
 	if val, ok := os.LookupEnv(key); ok && val != "" {
 		return val
@@ -96,7 +84,6 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// parseDuration wraps time.ParseDuration with a safe fallback.
 func parseDuration(s string) time.Duration {
 	d, err := time.ParseDuration(s)
 	if err != nil {
@@ -105,7 +92,6 @@ func parseDuration(s string) time.Duration {
 	return d
 }
 
-// parseIntEnv converts a string to int with a safe fallback.
 func parseIntEnv(s string) int {
 	v, err := strconv.Atoi(s)
 	if err != nil {

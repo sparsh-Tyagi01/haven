@@ -16,22 +16,17 @@ import (
 	"github.com/sparsh-Tyagi01/haven/backend/internal/config"
 )
 
-// Handler holds dependencies for community-related HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new community Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Create Proposal ──────────────────────────────
 
-// CreateProposal submits a new community proposal.
-// POST /api/v1/proposals
 func (h *Handler) CreateProposal(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -50,10 +45,8 @@ func (h *Handler) CreateProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate slug from name
 	slug := generateSlug(req.Name)
 
-	// Check slug uniqueness and append suffix if needed
 	slug, err := h.ensureUniqueSlug(r, slug)
 	if err != nil {
 		log.Printf("error ensuring unique slug: %v", err)
@@ -61,13 +54,11 @@ func (h *Handler) CreateProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Default category if empty
 	category := req.Category
 	if category == "" {
 		category = "general"
 	}
 
-	// Insert the proposal
 	var community Community
 	err = h.db.QueryRowContext(r.Context(),
 		`INSERT INTO communities (name, slug, description, category, tags, logo_url, banner_url, owner_id, visibility, is_proposal, upvotes_count, member_count)
@@ -88,7 +79,6 @@ func (h *Handler) CreateProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The creator auto-votes for their own proposal
 	h.db.ExecContext(r.Context(),
 		`INSERT INTO community_votes (user_id, community_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 		userID, community.ID,
@@ -97,15 +87,10 @@ func (h *Handler) CreateProposal(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, community)
 }
 
-// ── List Proposals ───────────────────────────────
-
-// ListProposals returns all pending community proposals.
-// GET /api/v1/proposals
 func (h *Handler) ListProposals(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 	offset := (page - 1) * perPage
 
-	// Count total proposals
 	var total int
 	h.db.QueryRowContext(r.Context(),
 		`SELECT COUNT(*) FROM communities WHERE is_proposal = true`,
@@ -150,11 +135,6 @@ func (h *Handler) ListProposals(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── Vote on Proposal ─────────────────────────────
-
-// VoteProposal registers an upvote on a community proposal.
-// If the upvote count reaches the threshold, the community is auto-provisioned.
-// POST /api/v1/proposals/:id/vote
 func (h *Handler) VoteProposal(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -168,7 +148,6 @@ func (h *Handler) VoteProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify this is still a proposal
 	var isProposal bool
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT is_proposal FROM communities WHERE id = $1`, communityID,
@@ -187,7 +166,6 @@ func (h *Handler) VoteProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert vote (unique constraint prevents duplicates)
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO community_votes (user_id, community_id) VALUES ($1, $2)`,
 		userID, communityID,
@@ -202,7 +180,6 @@ func (h *Handler) VoteProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Increment upvotes_count
 	var newCount int
 	h.db.QueryRowContext(r.Context(),
 		`UPDATE communities SET upvotes_count = upvotes_count + 1, updated_at = NOW()
@@ -210,7 +187,6 @@ func (h *Handler) VoteProposal(w http.ResponseWriter, r *http.Request) {
 		communityID,
 	).Scan(&newCount)
 
-	// Check if threshold is reached — auto-provision
 	provisioned := false
 	if newCount >= h.cfg.CommunityProposalThreshold {
 		provisioned = h.provisionCommunity(r, communityID)
@@ -223,9 +199,9 @@ func (h *Handler) VoteProposal(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// provisionCommunity converts a proposal into an active community.
+
 func (h *Handler) provisionCommunity(r *http.Request, communityID string) bool {
-	// Get the owner ID
+	
 	var ownerID string
 	err := h.db.QueryRowContext(r.Context(),
 		`UPDATE communities SET is_proposal = false, member_count = 1, updated_at = NOW()
@@ -237,7 +213,6 @@ func (h *Handler) provisionCommunity(r *http.Request, communityID string) bool {
 		return false
 	}
 
-	// Create owner membership
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO memberships (user_id, community_id, role) VALUES ($1, $2, 'owner')
 		 ON CONFLICT (user_id, community_id) DO UPDATE SET role = 'owner'`,
@@ -251,19 +226,14 @@ func (h *Handler) provisionCommunity(r *http.Request, communityID string) bool {
 	return true
 }
 
-// ── List Communities ─────────────────────────────
 
-// ListCommunities returns all active (non-proposal) public communities.
-// GET /api/v1/communities
 func (h *Handler) ListCommunities(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 	offset := (page - 1) * perPage
 
-	// Optional search query
 	search := r.URL.Query().Get("q")
 	categoryFilter := r.URL.Query().Get("category")
 
-	// Build dynamic query
 	query := `SELECT id, name, slug, description, category, tags, logo_url, banner_url, owner_id,
 	                  visibility, is_proposal, upvotes_count, member_count, created_at, updated_at
 	           FROM communities
@@ -285,11 +255,9 @@ func (h *Handler) ListCommunities(w http.ResponseWriter, r *http.Request) {
 		argIdx++
 	}
 
-	// Count total
 	var total int
 	h.db.QueryRowContext(r.Context(), countQuery, args...).Scan(&total)
 
-	// Paginate
 	query += fmt.Sprintf(` ORDER BY member_count DESC, created_at DESC LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
 	args = append(args, perPage, offset)
 
@@ -324,10 +292,7 @@ func (h *Handler) ListCommunities(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── Get Community ────────────────────────────────
 
-// GetCommunity retrieves a single community by slug.
-// GET /api/v1/communities/:slug
 func (h *Handler) GetCommunity(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if slug == "" {
@@ -357,7 +322,7 @@ func (h *Handler) GetCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce visibility: private/invite_only requires membership
+
 	if c.Visibility != "public" {
 		userID, _ := r.Context().Value("userID").(string)
 		if userID == "" {
@@ -373,10 +338,7 @@ func (h *Handler) GetCommunity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, c)
 }
 
-// ── Join Community ───────────────────────────────
 
-// JoinCommunity adds the authenticated user as a member.
-// POST /api/v1/communities/:id/join
 func (h *Handler) JoinCommunity(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -390,7 +352,6 @@ func (h *Handler) JoinCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify community exists and is active
 	var isProposal bool
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -414,7 +375,6 @@ func (h *Handler) JoinCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert membership
 	var membership Membership
 	err = h.db.QueryRowContext(r.Context(),
 		`INSERT INTO memberships (user_id, community_id, role)
@@ -432,7 +392,6 @@ func (h *Handler) JoinCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Increment member count
 	h.db.ExecContext(r.Context(),
 		`UPDATE communities SET member_count = member_count + 1, updated_at = NOW() WHERE id = $1`,
 		communityID,
@@ -441,10 +400,7 @@ func (h *Handler) JoinCommunity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, membership)
 }
 
-// ── Leave Community ──────────────────────────────
 
-// LeaveCommunity removes the authenticated user from a community.
-// POST /api/v1/communities/:id/leave
 func (h *Handler) LeaveCommunity(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -458,7 +414,6 @@ func (h *Handler) LeaveCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user is the owner (owners can't leave)
 	var role string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT role FROM memberships WHERE user_id = $1 AND community_id = $2`,
@@ -478,7 +433,6 @@ func (h *Handler) LeaveCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete membership
 	_, err = h.db.ExecContext(r.Context(),
 		`DELETE FROM memberships WHERE user_id = $1 AND community_id = $2`,
 		userID, communityID,
@@ -489,7 +443,6 @@ func (h *Handler) LeaveCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Decrement member count
 	h.db.ExecContext(r.Context(),
 		`UPDATE communities SET member_count = GREATEST(member_count - 1, 0), updated_at = NOW() WHERE id = $1`,
 		communityID,
@@ -498,10 +451,7 @@ func (h *Handler) LeaveCommunity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "left community"})
 }
 
-// ── List Members ─────────────────────────────────
 
-// ListMembers returns the members of a community.
-// GET /api/v1/communities/:id/members
 func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	communityID := chi.URLParam(r, "id")
 	if communityID == "" {
@@ -509,7 +459,6 @@ func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify community exists
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT visibility FROM communities WHERE id = $1`, communityID,
@@ -519,7 +468,6 @@ func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For private communities, require membership
 	if visibility != "public" {
 		userID, _ := r.Context().Value("userID").(string)
 		if userID == "" || !h.isMember(r, userID, communityID) {
@@ -572,10 +520,7 @@ func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── Update Community ─────────────────────────────
 
-// UpdateCommunity updates community details. Requires owner or admin role.
-// PUT /api/v1/communities/:id
 func (h *Handler) UpdateCommunity(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -589,7 +534,6 @@ func (h *Handler) UpdateCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check role — must be owner or admin
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions — requires owner or admin role"})
@@ -602,13 +546,11 @@ func (h *Handler) UpdateCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate visibility if provided
 	if req.Visibility != nil && !ValidVisibilities[*req.Visibility] {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid visibility — must be public, private, or invite_only"})
 		return
 	}
 
-	// Build dynamic UPDATE query
 	query := "UPDATE communities SET updated_at = NOW()"
 	args := []interface{}{}
 	argIdx := 1
@@ -670,10 +612,7 @@ func (h *Handler) UpdateCommunity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, c)
 }
 
-// ── Update Member Role ───────────────────────────
 
-// UpdateMemberRole changes a member's role within a community.
-// PUT /api/v1/communities/:id/members/:userId/role
 func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	actorID, ok := r.Context().Value("userID").(string)
 	if !ok || actorID == "" {
@@ -684,7 +623,6 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	communityID := chi.URLParam(r, "id")
 	targetUserID := chi.URLParam(r, "userId")
 
-	// Only owners can change roles
 	actorRole := h.getUserRole(r, actorID, communityID)
 	if actorRole != "owner" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only the community owner can change member roles"})
@@ -702,13 +640,11 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cannot change the owner's own role
 	if targetUserID == actorID {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cannot change your own role"})
 		return
 	}
 
-	// Update role
 	result, err := h.db.ExecContext(r.Context(),
 		`UPDATE memberships SET role = $1 WHERE user_id = $2 AND community_id = $3`,
 		req.Role, targetUserID, communityID,
@@ -728,10 +664,7 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "role updated", "role": req.Role})
 }
 
-// ── My Communities ───────────────────────────────
 
-// MyCommunitiesHandler returns the authenticated user's joined communities.
-// GET /api/v1/users/communities
 func (h *Handler) MyCommunitiesHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -779,12 +712,9 @@ func (h *Handler) MyCommunitiesHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── Helpers ──────────────────────────────────────
 
-// generateSlug creates a URL-friendly slug from a community name.
 func generateSlug(name string) string {
 	slug := strings.ToLower(name)
-	// Replace spaces and special characters with hyphens
 	reg := regexp.MustCompile(`[^a-z0-9]+`)
 	slug = reg.ReplaceAllString(slug, "-")
 	slug = strings.Trim(slug, "-")
@@ -794,7 +724,6 @@ func generateSlug(name string) string {
 	return slug
 }
 
-// ensureUniqueSlug checks if a slug exists and appends a numeric suffix if needed.
 func (h *Handler) ensureUniqueSlug(r *http.Request, slug string) (string, error) {
 	var exists bool
 	err := h.db.QueryRowContext(r.Context(),
@@ -807,7 +736,6 @@ func (h *Handler) ensureUniqueSlug(r *http.Request, slug string) (string, error)
 		return slug, nil
 	}
 
-	// Find the next available suffix
 	for i := 2; i < 1000; i++ {
 		candidate := fmt.Sprintf("%s-%d", slug, i)
 		err := h.db.QueryRowContext(r.Context(),
@@ -823,7 +751,6 @@ func (h *Handler) ensureUniqueSlug(r *http.Request, slug string) (string, error)
 	return "", fmt.Errorf("could not generate unique slug for: %s", slug)
 }
 
-// isMember checks if a user is a member of a community.
 func (h *Handler) isMember(r *http.Request, userID, communityID string) bool {
 	var exists bool
 	h.db.QueryRowContext(r.Context(),
@@ -833,7 +760,6 @@ func (h *Handler) isMember(r *http.Request, userID, communityID string) bool {
 	return exists
 }
 
-// getUserRole returns the user's role in a community, or empty string if not a member.
 func (h *Handler) getUserRole(r *http.Request, userID, communityID string) string {
 	var role string
 	err := h.db.QueryRowContext(r.Context(),
@@ -846,7 +772,6 @@ func (h *Handler) getUserRole(r *http.Request, userID, communityID string) strin
 	return role
 }
 
-// parsePagination extracts page and per_page from query parameters.
 func parsePagination(r *http.Request) (int, int) {
 	page := 1
 	perPage := 20
@@ -865,7 +790,6 @@ func parsePagination(r *http.Request) (int, int) {
 	return page, perPage
 }
 
-// isUniqueViolation checks if a PostgreSQL error is a unique constraint violation.
 func isUniqueViolation(err error) bool {
 	if pqErr, ok := err.(*pq.Error); ok {
 		return pqErr.Code == "23505"
@@ -873,7 +797,6 @@ func isUniqueViolation(err error) bool {
 	return false
 }
 
-// writeJSON encodes the given payload as JSON and writes it to the response.
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

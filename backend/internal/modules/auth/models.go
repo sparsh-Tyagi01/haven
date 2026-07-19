@@ -4,39 +4,32 @@ import (
 	"time"
 )
 
-// ── Request/Response Models ──────────────────────
-
-// RegisterRequest represents the payload for user registration.
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// LoginRequest represents the payload for user login.
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// RefreshRequest represents the payload for token refresh.
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// AuthResponse is returned after successful login or registration.
 type AuthResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"` // seconds until access token expires
+	ExpiresIn    int64  `json:"expires_in"`
 	User         *UserProfile `json:"user"`
 }
 
-// UserProfile represents the public-facing user profile.
 type UserProfile struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
-	Email       string    `json:"email,omitempty"` // omitted in public views
+	Email       string    `json:"email,omitempty"`
 	DisplayName string    `json:"display_name"`
 	Bio         string    `json:"bio"`
 	AvatarURL   string    `json:"avatar_url"`
@@ -48,7 +41,6 @@ type UserProfile struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-// UpdateProfileRequest represents a profile update payload.
 type UpdateProfileRequest struct {
 	DisplayName *string   `json:"display_name,omitempty"`
 	Bio         *string   `json:"bio,omitempty"`
@@ -59,9 +51,6 @@ type UpdateProfileRequest struct {
 	Privacy     *string   `json:"privacy,omitempty"`
 }
 
-// ── Validation ───────────────────────────────────
-
-// Validate checks the RegisterRequest for required fields and constraints.
 func (r *RegisterRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 
@@ -78,7 +67,6 @@ func (r *RegisterRequest) Validate() map[string]string {
 	return errors
 }
 
-// Validate checks the LoginRequest for required fields.
 func (r *LoginRequest) Validate() map[string]string {
 	errors := make(map[string]string)
 

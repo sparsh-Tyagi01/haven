@@ -11,22 +11,16 @@ import (
 	"github.com/sparsh-Tyagi01/haven/backend/internal/config"
 )
 
-// Handler holds dependencies for event HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new event Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Create Event ─────────────────────────────────
-
-// CreateEvent handles scheduling events. Requires staff role.
-// POST /api/v1/communities/{id}/events
 func (h *Handler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -40,7 +34,6 @@ func (h *Handler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify permissions (owner, admin, moderator only)
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" && role != "moderator" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions — only community leaders can schedule events"})
@@ -74,10 +67,6 @@ func (h *Handler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, e)
 }
 
-// ── Update Event ─────────────────────────────────
-
-// UpdateEvent edits event details.
-// PUT /api/v1/events/{id}
 func (h *Handler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -91,7 +80,6 @@ func (h *Handler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve community ID of event to verify role
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT community_id FROM events WHERE id = $1`, eventID,
@@ -101,7 +89,6 @@ func (h *Handler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify permissions
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" && role != "moderator" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
@@ -136,10 +123,6 @@ func (h *Handler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, e)
 }
 
-// ── List Events ──────────────────────────────────
-
-// ListEvents returns all events for a community.
-// GET /api/v1/communities/{slug}/events
 func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 	communitySlug := chi.URLParam(r, "slug")
 	if communitySlug == "" {
@@ -149,7 +132,6 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Fetch community meta
 	var communityID string
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -198,7 +180,6 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Count RSVPs
 		h.db.QueryRowContext(r.Context(),
 			`SELECT 
 			   COUNT(CASE WHEN status = 'going' THEN 1 END),
@@ -208,7 +189,6 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 			e.ID,
 		).Scan(&e.GoingCount, &e.InterestedCount, &e.DeclinedCount)
 
-		// Fetch current user's RSVP status if logged in
 		if userID != "" {
 			var rsvpStatus string
 			err = h.db.QueryRowContext(r.Context(),
@@ -226,10 +206,6 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, eventsList)
 }
 
-// ── RSVP Event ───────────────────────────────────
-
-// RSVPEvent registers or updates user response.
-// POST /api/v1/events/{id}/rsvp
 func (h *Handler) RSVPEvent(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -243,7 +219,6 @@ func (h *Handler) RSVPEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify event exists and retrieve community ID
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT community_id FROM events WHERE id = $1`, eventID,
@@ -253,7 +228,6 @@ func (h *Handler) RSVPEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify membership (must be a member of community to RSVP)
 	var isMember bool
 	h.db.QueryRowContext(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM memberships WHERE user_id = $1 AND community_id = $2)`,
@@ -271,7 +245,6 @@ func (h *Handler) RSVPEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Status == "" {
-		// Revoke RSVP
 		_, err := h.db.ExecContext(r.Context(),
 			`DELETE FROM rsvps WHERE event_id = $1 AND user_id = $2`,
 			eventID, userID,
@@ -290,7 +263,6 @@ func (h *Handler) RSVPEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Upsert RSVP
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO rsvps (event_id, user_id, status, updated_at)
 		 VALUES ($1, $2, $3, NOW())
@@ -306,8 +278,6 @@ func (h *Handler) RSVPEvent(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "rsvp updated", "status": req.Status})
 }
-
-// ── Helpers ──────────────────────────────────────
 
 func (h *Handler) getUserRole(r *http.Request, userID, communityID string) string {
 	var role string

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Navbar from "../../components/Navbar";
 import { useAuth } from "../../../hooks/useAuth";
 import {
   usePost,
@@ -47,14 +48,14 @@ export default function PostDetailPage({
 
   const roleColor = (role: string) => {
     const colors: Record<string, string> = {
-      owner: "var(--accent)",
-      admin: "var(--primary)",
+      owner: "var(--color-accent)",
+      admin: "var(--color-primary)",
       moderator: "#5e4a7a",
       expert: "#2d6a6a",
-      member: "var(--text-muted)",
-      guest: "var(--text-light)",
+      member: "var(--text-secondary)",
+      guest: "var(--text-tertiary)",
     };
-    return colors[role] || "var(--text-muted)";
+    return colors[role] || "var(--text-secondary)";
   };
 
   const [commentContent, setCommentContent] = useState("");
@@ -163,27 +164,31 @@ export default function PostDetailPage({
 
   if (postLoading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner} />
-        <p style={styles.loadingText}>Fetching discussion thread...</p>
+      <div className="page-wrapper">
+        <Navbar />
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner} />
+          <p style={styles.loadingText}>Loading post...</p>
+        </div>
       </div>
     );
   }
 
   if (postError || !post) {
     return (
-      <div style={styles.pageContainer}>
-        <div style={styles.editorialFrame}>
-          <div style={styles.errorState}>
-            <h2 style={styles.errorTitle}>Thread Not Found</h2>
+      <div className="page-wrapper">
+        <Navbar />
+        <main className="page-content">
+          <div className="container" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
+            <h2 style={styles.errorTitle}>Post Not Found</h2>
             <p style={styles.errorText}>
               {postError || "This post does not exist or you do not have permission to view it."}
             </p>
             <Link href="/communities" className="btn btn-secondary">
-              ← Back to Registry
+              ← Back to Communities
             </Link>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -419,20 +424,21 @@ export default function PostDetailPage({
   };
 
   return (
-    <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.headerTop}>
-            <Link href={`/communities/${post.community_slug}`} style={styles.backLink}>
-              ← Back to /{post.community_slug}
+    <div className="page-wrapper">
+      <Navbar />
+      <main className="page-content">
+        <div className="container-narrow" style={styles.pageInner}>
+          {/* Breadcrumb */}
+          <div style={styles.breadcrumb}>
+            <Link href={`/communities/${post.community_slug}`} style={styles.breadcrumbLink}>
+              /{post.community_slug}
             </Link>
-            <span style={styles.headerMeta}>Discussion Desk</span>
+            <span style={styles.breadcrumbSep}>›</span>
+            <span style={styles.breadcrumbCurrent}>Post Detail</span>
           </div>
-        </header>
 
-        {/* Main Post Section */}
-        <article style={styles.postArticle}>
+          {/* Main Post Section */}
+          <article style={styles.postArticle}>
           {post.is_solved && (
             <div style={styles.solvedAlert}>
               <span style={styles.checkIcon}>✓</span>
@@ -650,17 +656,8 @@ export default function PostDetailPage({
             </div>
           )}
         </section>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerBorder} />
-          <div style={styles.footerGrid}>
-            <span>Discussion Thread</span>
-            <span style={styles.textCenter}>Haven Network</span>
-            <span style={{ textAlign: "right" }}>Phase 3</span>
-          </div>
-        </footer>
       </div>
+      </main>
     </div>
   );
 }
@@ -682,12 +679,9 @@ function stringToColor(str: string): string {
 // ── Styles ───────────────────────────────────────
 
 const styles: { [key: string]: React.CSSProperties } = {
-  pageContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
+  pageInner: {
+    paddingTop: "1.5rem",
+    paddingBottom: "3rem",
   },
   loadingContainer: {
     minHeight: "100vh",
@@ -695,102 +689,88 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "var(--bg-main)",
   },
   spinner: {
-    width: "40px",
-    height: "40px",
-    border: "3px solid var(--border-light)",
-    borderTop: "3px solid var(--primary)",
+    width: "28px",
+    height: "28px",
+    border: "2px solid var(--border-primary)",
+    borderTop: "2px solid var(--color-primary)",
     borderRadius: "50%",
-    animation: "spin 1s linear infinite",
+    animation: "spin 0.8s linear infinite",
     marginBottom: "1rem",
   },
   loadingText: {
-    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     fontStyle: "italic",
-    fontSize: "1.1rem",
-    color: "var(--text-muted)",
   },
-  editorialFrame: {
-    width: "100%",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
-    padding: "2.5rem",
-    boxShadow: "var(--shadow-lg)",
+  breadcrumb: {
     display: "flex",
-    flexDirection: "column",
-    flexGrow: 1,
-  },
-  header: {
+    alignItems: "center",
+    gap: "0.5rem",
     marginBottom: "1.5rem",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
-  headerTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.5rem",
-  },
-  backLink: {
-    color: "var(--primary)",
+  breadcrumbLink: {
+    color: "var(--color-primary)",
     textDecoration: "none",
-    fontWeight: 600,
+    fontWeight: 500,
   },
-  headerMeta: {
-    letterSpacing: "0.05em",
+  breadcrumbSep: {
+    color: "var(--text-tertiary)",
+  },
+  breadcrumbCurrent: {
+    color: "var(--text-secondary)",
+    fontWeight: 500,
   },
   postArticle: {
     paddingBottom: "2.5rem",
-    borderBottom: "2px solid var(--text-main)",
+    borderBottom: "1px solid var(--border-primary)",
     marginBottom: "2.5rem",
   },
   solvedAlert: {
-    backgroundColor: "var(--primary-light)",
-    border: "1px solid var(--success)",
-    padding: "1rem 1.5rem",
+    backgroundColor: "var(--color-success-light)",
+    border: "1px solid var(--color-success)",
+    padding: "1rem 1.25rem",
     display: "flex",
     alignItems: "center",
     gap: "1rem",
-    fontSize: "0.95rem",
-    color: "var(--success)",
+    fontSize: "var(--text-base)",
+    color: "var(--color-success)",
     marginBottom: "1.5rem",
+    borderRadius: "var(--radius-sm)",
   },
   checkIcon: {
-    fontSize: "1.5rem",
+    fontSize: "1.25rem",
     fontWeight: 700,
   },
   postMetaRow: {
     display: "flex",
     alignItems: "center",
-    gap: "1rem",
+    gap: "0.75rem",
     marginBottom: "1rem",
   },
   typeBadge: {
-    fontSize: "0.7rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     textTransform: "uppercase",
-    padding: "0.2rem 0.5rem",
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "2px",
+    padding: "0.15rem 0.5rem",
+    backgroundColor: "var(--color-primary-light)",
+    color: "var(--color-primary)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-sm)",
   },
   postDate: {
-    fontSize: "0.85rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
   postTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2.75rem",
-    lineHeight: 1.15,
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    lineHeight: 1.2,
     fontWeight: 700,
-    letterSpacing: "-0.03em",
+    letterSpacing: "-0.02em",
     margin: 0,
     padding: 0,
     border: "none",
@@ -799,106 +779,111 @@ const styles: { [key: string]: React.CSSProperties } = {
   authorPassport: {
     display: "flex",
     alignItems: "center",
-    gap: "1rem",
+    gap: "0.75rem",
     marginBottom: "2rem",
     paddingBottom: "1rem",
-    borderBottom: "1px solid var(--border-light)",
+    borderBottom: "1px solid var(--border-primary)",
   },
   passportAvatar: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "50%",
+    width: "44px",
+    height: "44px",
+    borderRadius: "var(--radius-sm)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
-    fontSize: "1.25rem",
+    fontSize: "var(--text-lg)",
     fontWeight: 700,
   },
   authorDisplayName: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.1rem",
+    fontSize: "var(--text-md)",
     margin: 0,
+    fontWeight: 600,
   },
   authorHandle: {
     fontFamily: "var(--font-mono)",
-    fontSize: "0.8rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   postContent: {
-    fontSize: "1.1rem",
-    lineHeight: 1.75,
-    color: "var(--text-main)",
+    fontSize: "var(--text-base)",
+    lineHeight: 1.7,
+    color: "var(--text-secondary)",
     marginBottom: "2rem",
   },
   paragraphText: {
     marginBottom: "1.25rem",
   },
   codeBlock: {
-    backgroundColor: "var(--bg-main)",
-    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-inset)",
+    border: "1px solid var(--border-primary)",
     padding: "1rem",
     fontFamily: "var(--font-mono)",
-    fontSize: "0.9rem",
+    fontSize: "var(--text-sm)",
     overflowX: "auto",
     marginBottom: "1.5rem",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-sm)",
   },
   postReactions: {
-    backgroundColor: "var(--bg-main)",
-    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-surface-hover)",
+    border: "1px solid var(--border-primary)",
     padding: "1.25rem 1.5rem",
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+    borderRadius: "var(--radius-md)",
   },
   reactionsTitle: {
-    fontSize: "0.8rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 700,
     textTransform: "uppercase",
-    color: "var(--text-muted)",
+    color: "var(--text-secondary)",
     letterSpacing: "0.04em",
   },
   reactionsRow: {
     display: "flex",
-    gap: "0.5rem",
+    gap: "0.4rem",
     flexWrap: "wrap",
   },
   postReactBtn: {
-    padding: "0.5rem 1rem",
-    fontSize: "0.85rem",
+    padding: "0.4rem 0.85rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
     backgroundColor: "var(--bg-surface)",
     cursor: "pointer",
-    borderRadius: "2px",
-    color: "var(--text-muted)",
-    transition: "all 0.15s ease",
+    borderRadius: "var(--radius-full)",
+    color: "var(--text-secondary)",
+    transition: "all 150ms ease",
     fontFamily: "var(--font-sans)",
   },
   postReactBtnActive: {
-    backgroundColor: "var(--primary)",
-    color: "var(--bg-surface)",
-    borderColor: "var(--primary)",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    borderColor: "var(--color-primary)",
   },
-  // Thread section
   commentsSection: {
     display: "flex",
     flexDirection: "column",
     gap: "1.5rem",
+    marginTop: "2.5rem",
   },
   commentsHeading: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.5rem",
+    fontSize: "var(--text-lg)",
     border: "none",
     margin: 0,
+    fontWeight: 600,
   },
   commentForm: {
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
     padding: "1.5rem",
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-surface)",
   },
   commentTextarea: {
     resize: "vertical",
@@ -908,44 +893,42 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     justifyContent: "flex-end",
   },
-  commentSubmitBtn: {
-    padding: "0.6rem 1.5rem",
-    fontSize: "0.85rem",
-  },
+  commentSubmitBtn: {},
   authPromptCard: {
     padding: "1.5rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
     textAlign: "center",
-    backgroundColor: "var(--bg-surface-hover)",
+    backgroundColor: "var(--bg-inset)",
+    borderRadius: "var(--radius-md)",
   },
   commentsLoadingText: {
-    fontSize: "0.95rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     fontStyle: "italic",
   },
   noCommentsCard: {
     padding: "2rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
     textAlign: "center",
-    color: "var(--text-light)",
+    color: "var(--text-tertiary)",
+    borderRadius: "var(--radius-md)",
   },
   commentsList: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.5rem",
+    gap: "1rem",
     marginTop: "1rem",
   },
-  // Thread cards
   commentWrapper: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
-    marginTop: "0.75rem",
+    gap: "0.5rem",
+    marginTop: "0.5rem",
   },
   commentCard: {
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
     padding: "1.25rem",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-md)",
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
@@ -955,12 +938,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: "absolute",
     top: "-10px",
     right: "1.5rem",
-    backgroundColor: "var(--success)",
+    backgroundColor: "var(--color-success)",
     color: "white",
-    fontSize: "0.65rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 700,
     padding: "0.2rem 0.6rem",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-sm)",
     letterSpacing: "0.05em",
   },
   commentHeader: {
@@ -974,14 +957,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.5rem",
   },
   avatarSmall: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
+    width: "26px",
+    height: "26px",
+    borderRadius: "var(--radius-sm)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
-    fontSize: "0.75rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
   },
   authorMeta: {
@@ -990,22 +973,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.35rem",
   },
   authorName: {
-    fontSize: "0.85rem",
+    fontSize: "var(--text-sm)",
     fontWeight: 600,
   },
   authorUsername: {
     fontFamily: "var(--font-mono)",
-    fontSize: "0.7rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   commentDate: {
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   commentBody: {
-    fontSize: "0.95rem",
+    fontSize: "var(--text-base)",
     lineHeight: 1.6,
-    color: "var(--text-main)",
+    color: "var(--text-secondary)",
   },
   commentFooter: {
     display: "flex",
@@ -1013,29 +996,29 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     flexWrap: "wrap",
     gap: "0.75rem",
-    borderTop: "1px dashed var(--border-light)",
+    borderTop: "1px dashed var(--border-primary)",
     paddingTop: "0.5rem",
   },
   reactionGrid: {
     display: "flex",
-    gap: "0.35rem",
+    gap: "0.3rem",
     flexWrap: "wrap",
   },
   reactBtn: {
-    padding: "0.3rem 0.6rem",
-    fontSize: "0.7rem",
-    border: "1px solid var(--border-light)",
+    padding: "0.25rem 0.55rem",
+    fontSize: "var(--text-xs)",
+    border: "1px solid var(--border-primary)",
     backgroundColor: "var(--bg-surface)",
     cursor: "pointer",
-    borderRadius: "2px",
-    color: "var(--text-muted)",
-    transition: "all 0.15s ease",
+    borderRadius: "var(--radius-full)",
+    color: "var(--text-secondary)",
+    transition: "all 150ms ease",
     fontFamily: "var(--font-sans)",
   },
   reactBtnActive: {
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    borderColor: "var(--primary)",
+    backgroundColor: "var(--color-primary-light)",
+    color: "var(--color-primary)",
+    borderColor: "var(--color-primary)",
   },
   utilityActions: {
     display: "flex",
@@ -1043,36 +1026,36 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
   },
   replyLinkBtn: {
-    fontSize: "0.75rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
-    color: "var(--primary)",
+    color: "var(--color-primary)",
     background: "none",
     border: "none",
     cursor: "pointer",
   },
   solveBtn: {
-    fontSize: "0.75rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
-    color: "var(--success)",
+    color: "var(--color-success)",
     background: "none",
     border: "none",
     cursor: "pointer",
   },
-  // Reply form inline
   replyForm: {
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
     padding: "1rem",
-    backgroundColor: "var(--bg-surface-hover)",
+    backgroundColor: "var(--bg-inset)",
     display: "flex",
     flexDirection: "column",
     gap: "0.5rem",
+    borderRadius: "var(--radius-md)",
   },
   replyTextarea: {
     resize: "vertical",
     width: "100%",
     padding: "0.5rem",
     fontFamily: "var(--font-sans)",
-    fontSize: "0.85rem",
+    fontSize: "var(--text-sm)",
   },
   replyFormActions: {
     display: "flex",
@@ -1128,13 +1111,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.5,
   },
   aiHelperDesk: {
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-main)",
+    border: "1px solid var(--border-primary)",
+    backgroundColor: "var(--bg-inset)",
     padding: "1.25rem",
     marginBottom: "2rem",
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+    borderRadius: "var(--radius-md)",
   },
   aiDeskHeader: {
     display: "flex",
@@ -1142,12 +1126,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     flexWrap: "wrap",
     gap: "0.75rem",
-    borderBottom: "1px dashed var(--border-light)",
+    borderBottom: "1px dashed var(--border-primary)",
     paddingBottom: "0.5rem",
   },
   aiDeskTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "0.95rem",
+    fontSize: "var(--text-sm)",
     fontWeight: 700,
     margin: 0,
     textTransform: "uppercase",
@@ -1159,23 +1143,23 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   aiBtn: {
     padding: "0.25rem 0.75rem",
-    fontSize: "0.75rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 600,
     fontFamily: "var(--font-mono)",
     backgroundColor: "var(--bg-surface)",
-    border: "1px solid var(--border-color)",
+    border: "1px solid var(--border-primary)",
     cursor: "pointer",
-    borderRadius: "2px",
+    borderRadius: "var(--radius-sm)",
   },
   aiError: {
-    color: "var(--error)",
-    fontSize: "0.8rem",
+    color: "var(--color-error)",
+    fontSize: "var(--text-xs)",
     margin: 0,
   },
   aiSummaryContent: {
     backgroundColor: "var(--bg-surface)",
     padding: "0.75rem 1rem",
-    borderLeft: "2px solid var(--primary)",
+    borderLeft: "2px solid var(--color-primary)",
     maxHeight: "250px",
     overflowY: "auto",
   },

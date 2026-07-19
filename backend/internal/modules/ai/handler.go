@@ -15,7 +15,6 @@ import (
 	pkgai "github.com/sparsh-Tyagi01/haven/backend/internal/pkg/ai"
 )
 
-// Handler holds dependencies for the AI synthesis handlers.
 type Handler struct {
 	db       *sql.DB
 	rdb      *redis.Client
@@ -23,7 +22,6 @@ type Handler struct {
 	aiClient *pkgai.GeminiClient
 }
 
-// NewHandler constructs an AI handler coordinating summaries and page extractions.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{
 		db:       db,
@@ -33,10 +31,6 @@ func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	}
 }
 
-// ── Summarize Post ────────────────────────────────
-
-// SummarizePost generates and caches a thread summary.
-// POST /api/v1/posts/{id}/summarize
 func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 	postID := chi.URLParam(r, "id")
 	if postID == "" {
@@ -44,7 +38,6 @@ func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Check Cache
 	var cachedSummary string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT summary FROM ai_summaries WHERE post_id = $1`, postID,
@@ -54,7 +47,6 @@ func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Fetch Post Details
 	var title, content string
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT title, content FROM posts WHERE id = $1`, postID,
@@ -68,7 +60,6 @@ func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Fetch Comments
 	rows, err := h.db.QueryContext(r.Context(),
 		`SELECT content FROM comments WHERE post_id = $1 ORDER BY created_at ASC`, postID,
 	)
@@ -87,7 +78,6 @@ func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. Summarize via Gemini
 	summary, err := h.aiClient.SummarizeThread(title, content, comments)
 	if err != nil {
 		log.Printf("ai summary client failed: %v", err)
@@ -95,7 +85,6 @@ func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Cache summary
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO ai_summaries (post_id, summary, updated_at)
 		 VALUES ($1, $2, NOW())
@@ -109,10 +98,6 @@ func (h *Handler) SummarizePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"post_id": postID, "summary": summary})
 }
 
-// ── Generate Wiki Draft ───────────────────────────
-
-// GenerateWikiDraft synthesizes post discussions into an article template.
-// POST /api/v1/posts/{id}/wiki-draft
 func (h *Handler) GenerateWikiDraft(w http.ResponseWriter, r *http.Request) {
 	postID := chi.URLParam(r, "id")
 	if postID == "" {
@@ -164,7 +149,6 @@ func (h *Handler) GenerateWikiDraft(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ── AI Assistant (RAG Chatbot) ────────────────────
 
 type AIMessage struct {
 	ID        string    `json:"id"`
@@ -173,8 +157,7 @@ type AIMessage struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// GetChatHistory fetches chat history for the authenticated user and community.
-// GET /api/v1/communities/{slug}/ai-assistant/history
+
 func (h *Handler) GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -188,7 +171,6 @@ func (h *Handler) GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Get Community ID
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT id FROM communities WHERE slug = $1`, slug,
@@ -202,7 +184,6 @@ func (h *Handler) GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Fetch Messages
 	rows, err := h.db.QueryContext(r.Context(),
 		`SELECT id, sender, content, created_at FROM ai_chat_messages
 		 WHERE community_id = $1 AND user_id = $2
@@ -226,8 +207,6 @@ func (h *Handler) GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{"messages": messages})
 }
 
-// ChatWithAssistant processes an incoming message, scans community context (RAG), and calls Gemini.
-// POST /api/v1/communities/{slug}/ai-assistant/chat
 func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -249,7 +228,6 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Get Community Details
 	var communityID, communityName string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT id, name FROM communities WHERE slug = $1`, slug,
@@ -263,11 +241,10 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Perform RAG Document Retrieval (SQL keyword matching)
 	words := strings.Fields(req.Message)
 	var matchExprs []string
 	var args []interface{}
-	args = append(args, communityID) // $1
+	args = append(args, communityID)
 	argIndex := 2
 
 	for _, word := range words {
@@ -282,11 +259,9 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 
 	var contextDocs []string
 
-	// Only query if we have keywords to search with
 	if len(matchExprs) > 0 {
 		keywordFilter := "(" + strings.Join(matchExprs, " OR ") + ")"
 		
-		// Query wiki pages
 		wikiQuery := fmt.Sprintf(
 			`SELECT title, content FROM wiki_pages WHERE community_id = $1 AND %s LIMIT 3`,
 			keywordFilter,
@@ -302,7 +277,6 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Query posts (only approved ones)
 		postQuery := fmt.Sprintf(
 			`SELECT title, content FROM posts WHERE community_id = $1 AND moderation_status = 'approved' AND %s LIMIT 3`,
 			keywordFilter,
@@ -319,7 +293,6 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 3. Save User Message
 	var userMsg AIMessage
 	userMsg.Sender = "user"
 	userMsg.Content = req.Message
@@ -335,7 +308,6 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4. Generate AI Answer
 	aiAnswer, err := h.aiClient.AnswerWithContext(req.Message, contextDocs)
 	if err != nil {
 		log.Printf("error generating AI response: %v", err)
@@ -343,7 +315,6 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Save Assistant Message
 	var assistantMsg AIMessage
 	assistantMsg.Sender = "assistant"
 	assistantMsg.Content = aiAnswer
@@ -364,8 +335,6 @@ func (h *Handler) ChatWithAssistant(w http.ResponseWriter, r *http.Request) {
 		"assistant_message": assistantMsg,
 	})
 }
-
-// ── Helper ────────────────────────────────────────
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")

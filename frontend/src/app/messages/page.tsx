@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 import { useAuth } from "../../hooks/useAuth";
 import { useWebSocket, fetchDirectMessages, type Message } from "../../hooks/useChat";
 
@@ -167,48 +168,52 @@ export default function DirectMessagesPage() {
 
   if (authLoading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner} />
-        <p style={styles.loadingText}>Connecting to message desk...</p>
+      <div className="page-wrapper">
+        <Navbar />
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner} />
+          <p style={styles.loadingText}>Connecting to message desk...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div style={styles.pageContainer}>
-        <div style={styles.editorialFrame}>
-          <div style={styles.errorState}>
+      <div className="page-wrapper">
+        <Navbar />
+        <main className="page-content">
+          <div className="container" style={styles.errorState}>
             <h2 style={styles.errorTitle}>Auth Required</h2>
             <p style={styles.errorText}>Please sign in to access your direct messages inbox.</p>
             <Link href="/auth/login" className="btn btn-primary">
               Sign In
             </Link>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.headerTop}>
-            <Link href="/" style={styles.backLink}>
-              ← Return Home
-            </Link>
+    <div className="page-wrapper">
+      <Navbar />
+      <main className="page-content">
+        <div className="container" style={styles.pageInner}>
+          {/* Header */}
+          <header style={styles.header}>
+            <div>
+              <h1 style={styles.pageTitle}>Inbox</h1>
+              <p style={styles.pageSubtitle}>Direct Messages</p>
+            </div>
             <div style={styles.wsIndicator}>
               <span style={{
                 ...styles.indicatorDot,
-                backgroundColor: connected ? "#10b981" : "#ef4444"
+                backgroundColor: connected ? "var(--color-success)" : "var(--color-error)"
               }} />
-              <span>{connected ? "Real-time Link Active" : "Connecting..."}</span>
+              <span style={styles.wsText}>{connected ? "Connected" : "Reconnecting..."}</span>
             </div>
-          </div>
-          <h1 style={styles.pageTitle}>DIRECT MESSAGES INBOX</h1>
-        </header>
+          </header>
 
         {/* Messaging Interface */}
         <div style={styles.chatGrid}>
@@ -359,7 +364,7 @@ export default function DirectMessagesPage() {
                     rows={2}
                     style={styles.messageInput}
                   />
-                  <button type="submit" disabled={!text.trim()} style={styles.sendBtn}>
+                  <button type="submit" disabled={!text.trim()} className="btn btn-primary" style={styles.sendBtn}>
                     Send
                   </button>
                 </form>
@@ -371,17 +376,8 @@ export default function DirectMessagesPage() {
             )}
           </div>
         </div>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerBorder} />
-          <div style={styles.footerGrid}>
-            <span>Direct Messaging Desk</span>
-            <span style={styles.textCenter}>Haven Network</span>
-            <span style={{ textAlign: "right" }}>Phase 7</span>
-          </div>
-        </footer>
       </div>
+      </main>
     </div>
   );
 }
@@ -390,8 +386,8 @@ export default function DirectMessagesPage() {
 
 function stringToColor(str: string): string {
   const colors = [
-    "#4a5c43", "#b05c42", "#3c6e47", "#5e4a7a",
-    "#6b5b3e", "#2d6a6a", "#8b5e3c", "#4a6b8a",
+    "#2d4a3e", "#8b3a3a", "#4a6b8a", "#6b5b3e",
+    "#5e4a7a", "#2d6a6a", "#8b5e3c", "#3c6e47",
   ];
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -403,12 +399,9 @@ function stringToColor(str: string): string {
 // ── Styles ───────────────────────────────────────
 
 const styles: { [key: string]: React.CSSProperties } = {
-  pageContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
+  pageInner: {
+    paddingTop: "1.5rem",
+    paddingBottom: "3rem",
   },
   loadingContainer: {
     minHeight: "100vh",
@@ -416,135 +409,119 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "var(--bg-main)",
   },
   spinner: {
-    width: "40px",
-    height: "40px",
-    border: "3px solid var(--border-light)",
-    borderTop: "3px solid var(--primary)",
+    width: "28px",
+    height: "28px",
+    border: "2px solid var(--border-primary)",
+    borderTop: "2px solid var(--color-primary)",
     borderRadius: "50%",
-    animation: "spin 1s linear infinite",
+    animation: "spin 0.8s linear infinite",
     marginBottom: "1rem",
   },
   loadingText: {
-    fontFamily: "var(--font-serif)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
     fontStyle: "italic",
-    fontSize: "1.1rem",
-    color: "var(--text-muted)",
-  },
-  editorialFrame: {
-    width: "100%",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
-    padding: "2.5rem",
-    boxShadow: "var(--shadow-lg)",
-    display: "flex",
-    flexDirection: "column",
-    flexGrow: 1,
   },
   header: {
-    borderBottom: "3px solid var(--text-main)",
-    paddingBottom: "1.5rem",
-    marginBottom: "2rem",
-  },
-  headerTop: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.5rem",
-    marginBottom: "1rem",
+    alignItems: "flex-end",
+    borderBottom: "1px solid var(--border-primary)",
+    paddingBottom: "1rem",
+    marginBottom: "1.5rem",
   },
-  backLink: {
-    color: "var(--primary)",
-    textDecoration: "none",
-    fontWeight: 600,
+  pageTitle: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    fontWeight: 700,
+    letterSpacing: "-0.02em",
+    margin: 0,
+    border: "none",
+  },
+  pageSubtitle: {
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
+    margin: "0.15rem 0 0",
   },
   wsIndicator: {
     display: "flex",
     alignItems: "center",
     gap: "0.4rem",
-    letterSpacing: "0.05em",
   },
   indicatorDot: {
     width: "8px",
     height: "8px",
     borderRadius: "50%",
   },
-  pageTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2.5rem",
-    fontWeight: 800,
-    letterSpacing: "-0.04em",
+  wsText: {
+    fontSize: "var(--text-xs)",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
     textTransform: "uppercase",
-    margin: 0,
-    padding: 0,
-    border: "none",
+    letterSpacing: "0.03em",
   },
+
   chatGrid: {
     display: "grid",
-    gridTemplateColumns: "240px 1fr",
-    gap: "1.5rem",
-    flexGrow: 1,
-    minHeight: "500px",
+    gridTemplateColumns: "260px 1fr",
+    gap: "2rem",
+    minHeight: "550px",
+    alignItems: "stretch",
   },
   leftCol: {
-    borderRight: "1px solid var(--border-color)",
-    paddingRight: "1rem",
+    borderRight: "1px solid var(--border-primary)",
+    paddingRight: "1.5rem",
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
+    gap: "1.25rem",
   },
   searchForm: {
     width: "100%",
   },
   searchInput: {
     width: "100%",
-    padding: "0.4rem 0.6rem",
-    fontSize: "0.85rem",
+    padding: "0.45rem 0.75rem",
+    fontSize: "var(--text-sm)",
   },
   searchResultsBox: {
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-main)",
+    border: "1px solid var(--border-primary)",
+    backgroundColor: "var(--bg-inset)",
     display: "flex",
     flexDirection: "column",
     maxHeight: "150px",
     overflowY: "auto",
+    borderRadius: "var(--radius-sm)",
   },
   searchResultBtn: {
-    padding: "0.4rem 0.75rem",
+    padding: "0.45rem 0.75rem",
     textAlign: "left",
     background: "none",
     border: "none",
-    fontSize: "0.8rem",
+    fontSize: "var(--text-xs)",
     fontFamily: "var(--font-mono)",
     cursor: "pointer",
-    borderBottom: "1px dashed var(--border-light)",
+    borderBottom: "1px dashed var(--border-primary)",
   },
   sectionHeaderRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "2px solid var(--text-main)",
+    borderBottom: "1px solid var(--text-primary)",
     paddingBottom: "0.4rem",
   },
   panelTitle: {
     fontFamily: "var(--font-serif)",
-    fontWeight: 700,
-    fontSize: "0.9rem",
+    fontWeight: 600,
+    fontSize: "var(--text-sm)",
     textTransform: "uppercase",
+    letterSpacing: "0.04em",
   },
   channelStack: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.35rem",
+    gap: "0.25rem",
   },
   channelItemBtn: {
     backgroundColor: "transparent",
@@ -554,37 +531,40 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderLeft: "2px solid transparent",
     textAlign: "left",
     padding: "0.5rem 0.75rem",
-    fontSize: "0.85rem",
-    fontFamily: "var(--font-mono)",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    fontFamily: "var(--font-sans)",
+    color: "var(--text-secondary)",
     cursor: "pointer",
+    borderRadius: "var(--radius-sm)",
+    transition: "all 150ms ease",
   },
   channelItemActive: {
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
+    backgroundColor: "var(--bg-surface-active)",
+    color: "var(--text-primary)",
     fontWeight: 600,
-    borderLeft: "2px solid var(--primary)",
+    borderLeft: "2px solid var(--color-primary)",
   },
   centerCol: {
     display: "flex",
     flexDirection: "column",
     height: "100%",
+    minWidth: 0,
   },
   channelHeader: {
-    borderBottom: "1px solid var(--border-color)",
+    borderBottom: "1px solid var(--border-primary)",
     paddingBottom: "0.75rem",
     marginBottom: "1rem",
   },
   channelTitleText: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.25rem",
-    fontWeight: 700,
+    fontSize: "var(--text-lg)",
+    fontWeight: 600,
     margin: 0,
     border: "none",
   },
   channelDescText: {
-    fontSize: "0.8rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
     margin: "0.2rem 0 0 0",
   },
   messagesContainer: {
@@ -593,40 +573,41 @@ const styles: { [key: string]: React.CSSProperties } = {
     paddingRight: "0.5rem",
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
+    gap: "0.75rem",
     maxHeight: "450px",
     minHeight: "350px",
-    backgroundColor: "var(--bg-main)",
-    border: "1px solid var(--border-color)",
+    backgroundColor: "var(--bg-surface)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-md)",
     padding: "1rem",
   },
   loadingThread: {
     textAlign: "center",
-    color: "var(--text-light)",
-    fontSize: "0.85rem",
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-sm)",
     padding: "2rem 0",
   },
   emptyThreadPlaceholder: {
     textAlign: "center",
-    color: "var(--text-light)",
-    fontSize: "0.85rem",
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-sm)",
     fontStyle: "italic",
     padding: "2rem 0",
   },
   messageRow: {
     display: "flex",
-    gap: "0.75rem",
+    gap: "0.6rem",
     alignItems: "start",
   },
   messageAvatar: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
+    width: "30px",
+    height: "30px",
+    borderRadius: "var(--radius-sm)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
-    fontSize: "0.85rem",
+    fontSize: "var(--text-xs)",
     fontWeight: 700,
     backgroundSize: "cover",
     flexShrink: 0,
@@ -635,98 +616,71 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     flexDirection: "column",
     gap: "0.2rem",
+    maxWidth: "80%",
   },
   messageMetaRow: {
     display: "flex",
     alignItems: "baseline",
-    gap: "0.4rem",
+    gap: "0.35rem",
   },
   senderNameText: {
     fontWeight: 600,
-    fontSize: "0.85rem",
+    fontSize: "var(--text-sm)",
   },
   senderUserHandle: {
     fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   messageTimeText: {
-    fontSize: "0.7rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   messageBodyText: {
-    fontSize: "0.9rem",
-    lineHeight: 1.45,
+    fontSize: "var(--text-sm)",
+    lineHeight: 1.5,
     margin: 0,
-    color: "var(--text-main)",
+    color: "var(--text-secondary)",
   },
   inputArea: {
     display: "flex",
     gap: "0.75rem",
     marginTop: "1rem",
-    alignItems: "end",
+    alignItems: "stretch",
   },
   messageInput: {
     flexGrow: 1,
-    padding: "0.5rem",
-    fontSize: "0.9rem",
+    padding: "0.5rem 0.75rem",
+    fontSize: "var(--text-sm)",
     resize: "none",
   },
-  sendBtn: {
-    backgroundColor: "var(--primary)",
-    color: "var(--bg-surface)",
-    border: "none",
-    padding: "0.6rem 1.2rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    fontSize: "0.85rem",
-    height: "100%",
-  },
+  sendBtn: {},
   emptyWorkspace: {
     flexGrow: 1,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontStyle: "italic",
-    color: "var(--text-light)",
-    fontSize: "0.9rem",
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-sm)",
     textAlign: "center",
     padding: "3rem",
+    border: "1px dashed var(--border-primary)",
+    borderRadius: "var(--radius-md)",
   },
   errorState: {
     textAlign: "center",
-    padding: "4rem 2rem",
+    padding: "5rem 2rem",
   },
   errorTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "2rem",
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
     marginBottom: "1rem",
   },
   errorText: {
-    color: "var(--text-muted)",
-    fontSize: "1rem",
+    color: "var(--text-secondary)",
+    fontSize: "var(--text-md)",
     marginBottom: "2rem",
     lineHeight: 1.6,
-  },
-  footer: {
-    marginTop: "2.5rem",
-    paddingTop: "2.5rem",
-  },
-  footerBorder: {
-    height: "4px",
-    borderTop: "1px solid var(--text-main)",
-    borderBottom: "1px solid var(--text-main)",
-    marginBottom: "0.75rem",
-  },
-  footerGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-  },
-  textCenter: {
-    textAlign: "center",
   },
 };

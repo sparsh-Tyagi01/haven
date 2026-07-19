@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 import { useAuth } from "../../hooks/useAuth";
 import {
   useCommunities,
@@ -34,7 +35,11 @@ export default function CommunitiesPage() {
     data: communitiesData,
     loading: communitiesLoading,
     refetch: refetchCommunities,
-  } = useCommunities(1, search, selectedCategory === "all" ? "" : selectedCategory);
+  } = useCommunities(
+    1,
+    search,
+    selectedCategory === "all" ? "" : selectedCategory
+  );
 
   const {
     data: proposalsData,
@@ -55,24 +60,29 @@ export default function CommunitiesPage() {
   };
 
   return (
-    <div style={styles.pageContainer}>
-      <div style={styles.editorialFrame}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.headerTop}>
-            <Link href="/" style={styles.backLink}>
-              ← Return to Haven
-            </Link>
-            <span style={styles.headerMeta}>Community Registry</span>
-          </div>
-          <h1 style={styles.pageTitle}>THE COMMUNITY REGISTRY</h1>
-          <p style={styles.pageSubtitle}>
-            Discover active communities or propose new ones for the Haven network
-          </p>
-        </header>
+    <div className="page-wrapper">
+      <Navbar />
+      <main className="page-content">
+        <div className="container" style={styles.pageInner}>
+          {/* Header */}
+          <header style={styles.header}>
+            <div>
+              <h1 style={styles.pageTitle}>Communities</h1>
+              <p style={styles.pageSubtitle}>
+                Discover active communities or propose new ones
+              </p>
+            </div>
+            {isAuthenticated && (
+              <Link
+                href="/communities/create"
+                className="btn btn-primary"
+              >
+                + New Proposal
+              </Link>
+            )}
+          </header>
 
-        {/* Action Bar */}
-        <div style={styles.actionBar}>
+          {/* Tabs */}
           <div style={styles.tabBar}>
             <button
               onClick={() => setActiveTab("active")}
@@ -99,94 +109,95 @@ export default function CommunitiesPage() {
               )}
             </button>
           </div>
-          {isAuthenticated && (
-            <Link href="/communities/create" className="btn btn-primary" style={styles.createBtn}>
-              + Submit Proposal
-            </Link>
-          )}
-        </div>
 
-        {/* Search & Filters (active tab only) */}
-        {activeTab === "active" && (
-          <div style={styles.filterBar}>
-            <input
-              type="text"
-              placeholder="Search communities by name or description..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={styles.searchInput}
-            />
-            <div style={styles.categoryScroll}>
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  style={{
-                    ...styles.categoryChip,
-                    ...(selectedCategory === cat ? styles.categoryChipActive : {}),
-                  }}
-                >
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </button>
-              ))}
+          {/* Search & Filters (active tab only) */}
+          {activeTab === "active" && (
+            <div style={styles.filterBar}>
+              <input
+                type="text"
+                placeholder="Search communities..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={styles.searchInput}
+              />
+              <div style={styles.categoryScroll}>
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    style={{
+                      ...styles.categoryChip,
+                      ...(selectedCategory === cat
+                        ? styles.categoryChipActive
+                        : {}),
+                    }}
+                  >
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Content */}
-        <div style={styles.content}>
-          {activeTab === "active" ? (
-            <ActiveCommunitiesList
-              communities={communitiesData?.communities || []}
-              loading={communitiesLoading}
-              total={communitiesData?.total || 0}
-            />
-          ) : (
-            <ProposalsList
-              proposals={proposalsData?.communities || []}
-              loading={proposalsLoading}
-              onVote={handleVote}
-              isAuthenticated={isAuthenticated}
-            />
           )}
-        </div>
 
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerBorder} />
-          <div style={styles.footerGrid}>
-            <span>Community Registry</span>
-            <span style={styles.textCenter}>Haven Network</span>
-            <span style={{ textAlign: "right" }}>Phase 2</span>
+          {/* Content */}
+          <div style={styles.content}>
+            {activeTab === "active" ? (
+              <ActiveCommunitiesList
+                communities={communitiesData?.communities || []}
+                loading={communitiesLoading}
+              />
+            ) : (
+              <ProposalsList
+                proposals={proposalsData?.communities || []}
+                loading={proposalsLoading}
+                onVote={handleVote}
+                isAuthenticated={isAuthenticated}
+              />
+            )}
           </div>
-        </footer>
-      </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer style={styles.footer}>
+        <div className="container">
+          <div style={styles.footerRule} />
+          <div style={styles.footerInner}>
+            <span style={styles.footerBrand}>Haven</span>
+            <span style={styles.footerText}>
+              © {new Date().getFullYear()} Haven
+            </span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
-// ── Active Communities List ──────────────────────
+/* ── Active Communities List ──────────────────────── */
 
 function ActiveCommunitiesList({
   communities,
   loading,
-  total,
 }: {
   communities: Community[];
   loading: boolean;
-  total: number;
 }) {
   if (loading) {
-    return <div style={styles.emptyState}><p style={styles.emptyText}>Loading communities...</p></div>;
+    return (
+      <div style={styles.emptyState}>
+        <p style={styles.emptyText}>Loading communities...</p>
+      </div>
+    );
   }
 
   if (communities.length === 0) {
     return (
       <div style={styles.emptyState}>
-        <h3 style={styles.emptyTitle}>No Communities Yet</h3>
+        <span style={styles.emptyIcon}>⬡</span>
+        <h3 style={styles.emptyTitle}>No communities yet</h3>
         <p style={styles.emptyText}>
-          The Haven network is waiting to be built. Submit the first community proposal
-          and gather support to establish your server.
+          Be the first to propose a community and gather support.
         </p>
       </div>
     );
@@ -198,13 +209,16 @@ function ActiveCommunitiesList({
         <Link
           key={c.id}
           href={`/communities/${c.slug}`}
+          className="card card-hover"
           style={styles.communityCard}
         >
           {/* Banner strip */}
           <div
             style={{
               ...styles.cardBanner,
-              backgroundColor: c.banner_url ? "transparent" : stringToColor(c.name),
+              backgroundColor: c.banner_url
+                ? "transparent"
+                : stringToColor(c.name),
               backgroundImage: c.banner_url ? `url(${c.banner_url})` : "none",
             }}
           />
@@ -231,7 +245,7 @@ function ActiveCommunitiesList({
                 : c.description}
             </p>
             <div style={styles.cardMeta}>
-              <span style={styles.metaChip}>{c.category}</span>
+              <span className="badge">{c.category}</span>
               <span style={styles.metaStat}>
                 <strong>{c.member_count}</strong> members
               </span>
@@ -239,7 +253,9 @@ function ActiveCommunitiesList({
             {c.tags && c.tags.length > 0 && (
               <div style={styles.tagRow}>
                 {c.tags.slice(0, 3).map((tag, i) => (
-                  <span key={i} style={styles.tag}>{tag}</span>
+                  <span key={i} style={styles.tag}>
+                    {tag}
+                  </span>
                 ))}
                 {c.tags.length > 3 && (
                   <span style={styles.tagMore}>+{c.tags.length - 3}</span>
@@ -253,7 +269,7 @@ function ActiveCommunitiesList({
   );
 }
 
-// ── Proposals List ───────────────────────────────
+/* ── Proposals List ───────────────────────────────── */
 
 function ProposalsList({
   proposals,
@@ -267,16 +283,20 @@ function ProposalsList({
   isAuthenticated: boolean;
 }) {
   if (loading) {
-    return <div style={styles.emptyState}><p style={styles.emptyText}>Loading proposals...</p></div>;
+    return (
+      <div style={styles.emptyState}>
+        <p style={styles.emptyText}>Loading proposals...</p>
+      </div>
+    );
   }
 
   if (proposals.length === 0) {
     return (
       <div style={styles.emptyState}>
-        <h3 style={styles.emptyTitle}>No Open Proposals</h3>
+        <span style={styles.emptyIcon}>◈</span>
+        <h3 style={styles.emptyTitle}>No open proposals</h3>
         <p style={styles.emptyText}>
-          All current proposals have either been provisioned or are awaiting submission.
-          Be the first to propose a new community.
+          All proposals have been provisioned or are awaiting submission.
         </p>
       </div>
     );
@@ -285,13 +305,15 @@ function ProposalsList({
   return (
     <div style={styles.proposalList}>
       {proposals.map((p) => (
-        <div key={p.id} style={styles.proposalCard}>
+        <div key={p.id} className="card" style={styles.proposalCard}>
           <div style={styles.proposalVoteCol}>
             <button
               onClick={() => onVote(p.id)}
               disabled={!isAuthenticated}
               style={styles.voteBtn}
-              title={isAuthenticated ? "Upvote this proposal" : "Sign in to vote"}
+              title={
+                isAuthenticated ? "Upvote this proposal" : "Sign in to vote"
+              }
             >
               ▲
             </button>
@@ -302,10 +324,13 @@ function ProposalsList({
             <h3 style={styles.proposalTitle}>{p.name}</h3>
             <p style={styles.proposalDesc}>{p.description}</p>
             <div style={styles.proposalMeta}>
-              <span style={styles.metaChip}>{p.category}</span>
-              {p.tags && p.tags.map((tag, i) => (
-                <span key={i} style={styles.tag}>{tag}</span>
-              ))}
+              <span className="badge">{p.category}</span>
+              {p.tags &&
+                p.tags.map((tag, i) => (
+                  <span key={i} style={styles.tag}>
+                    {tag}
+                  </span>
+                ))}
             </div>
           </div>
           <div style={styles.proposalProgress}>
@@ -327,12 +352,18 @@ function ProposalsList({
   );
 }
 
-// ── Color helper ─────────────────────────────────
+/* ── Helpers ──────────────────────────────────────── */
 
 function stringToColor(str: string): string {
   const colors = [
-    "#4a5c43", "#b05c42", "#3c6e47", "#5e4a7a",
-    "#6b5b3e", "#2d6a6a", "#8b5e3c", "#4a6b8a",
+    "#2d4a3e",
+    "#8b3a3a",
+    "#4a6b8a",
+    "#6b5b3e",
+    "#5e4a7a",
+    "#2d6a6a",
+    "#8b5e3c",
+    "#3c6e47",
   ];
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -341,182 +372,132 @@ function stringToColor(str: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-// ── Styles ───────────────────────────────────────
+/* ── Styles ───────────────────────────────────────── */
 
 const styles: { [key: string]: React.CSSProperties } = {
-  pageContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    padding: "2rem 1.5rem",
-    backgroundColor: "var(--bg-main)",
-  },
-  editorialFrame: {
-    width: "100%",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    backgroundColor: "var(--bg-surface)",
-    border: "2px solid var(--text-main)",
-    padding: "2.5rem",
-    boxShadow: "var(--shadow-lg)",
-    display: "flex",
-    flexDirection: "column",
-    flexGrow: 1,
+  pageInner: {
+    paddingTop: "2rem",
+    paddingBottom: "3rem",
   },
   header: {
-    borderBottom: "3px solid var(--text-main)",
-    paddingBottom: "1.5rem",
-    marginBottom: "2rem",
-    textAlign: "center",
-  },
-  headerTop: {
     display: "flex",
     justifyContent: "space-between",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase",
-    borderBottom: "1px solid var(--border-color)",
-    paddingBottom: "0.5rem",
-    marginBottom: "1rem",
-  },
-  backLink: {
-    color: "var(--primary)",
-    textDecoration: "none",
-    fontWeight: 600,
-  },
-  headerMeta: {
-    letterSpacing: "0.05em",
+    alignItems: "flex-start",
+    marginBottom: "2rem",
   },
   pageTitle: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "3rem",
-    fontWeight: 800,
-    letterSpacing: "-0.04em",
-    textTransform: "uppercase",
-    border: "none",
-    padding: 0,
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-3xl)",
+    fontWeight: 700,
+    letterSpacing: "-0.02em",
     margin: 0,
-    lineHeight: 0.95,
+    border: "none",
   },
   pageSubtitle: {
-    fontFamily: "var(--font-sans)",
-    fontSize: "0.9rem",
-    fontWeight: 500,
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
-    color: "var(--text-muted)",
-    marginTop: "0.75rem",
+    fontSize: "var(--text-base)",
+    color: "var(--text-tertiary)",
+    margin: "0.25rem 0 0",
   },
-  actionBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "2rem",
-    gap: "1rem",
-    flexWrap: "wrap" as const,
-  },
+
+  /* Tabs */
   tabBar: {
     display: "flex",
-    gap: "0",
-    border: "1px solid var(--border-color)",
+    gap: 0,
+    borderBottom: "1px solid var(--border-primary)",
+    marginBottom: "1.5rem",
   },
   tab: {
-    padding: "0.65rem 1.5rem",
+    padding: "0.65rem 1.25rem",
     fontFamily: "var(--font-sans)",
-    fontSize: "0.85rem",
-    fontWeight: 600,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
+    fontSize: "var(--text-sm)",
+    fontWeight: 500,
     cursor: "pointer",
     border: "none",
-    backgroundColor: "var(--bg-surface)",
-    color: "var(--text-muted)",
-    transition: "all 0.15s ease",
+    borderBottom: "2px solid transparent",
+    backgroundColor: "transparent",
+    color: "var(--text-tertiary)",
+    transition: "all 150ms ease",
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
+    marginBottom: "-1px",
   },
   tabActive: {
-    backgroundColor: "var(--primary)",
-    color: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    fontWeight: 600,
+    borderBottom: "2px solid var(--color-primary)",
   },
   tabBadge: {
-    fontSize: "0.7rem",
-    fontWeight: 700,
+    fontSize: "var(--text-xs)",
+    fontWeight: 600,
     padding: "0.1rem 0.4rem",
-    borderRadius: "2px",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: "var(--radius-sm)",
+    backgroundColor: "var(--bg-inset)",
+    color: "var(--text-tertiary)",
   },
-  createBtn: {
-    padding: "0.65rem 1.5rem",
-    fontSize: "0.85rem",
-  },
+
+  /* Filters */
   filterBar: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "1rem",
-    marginBottom: "2rem",
-    paddingBottom: "1.5rem",
-    borderBottom: "1px solid var(--border-color)",
+    gap: "0.75rem",
+    marginBottom: "1.5rem",
   },
   searchInput: {
-    maxWidth: "500px",
+    maxWidth: "400px",
   },
   categoryScroll: {
     display: "flex",
-    gap: "0.5rem",
+    gap: "0.35rem",
     flexWrap: "wrap" as const,
   },
   categoryChip: {
-    padding: "0.35rem 0.75rem",
-    fontSize: "0.75rem",
-    fontWeight: 600,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
-    border: "1px solid var(--border-color)",
-    borderRadius: "2px",
+    padding: "0.3rem 0.7rem",
+    fontSize: "var(--text-xs)",
+    fontWeight: 500,
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-full)",
     cursor: "pointer",
     backgroundColor: "var(--bg-surface)",
-    color: "var(--text-muted)",
-    transition: "all 0.15s ease",
+    color: "var(--text-tertiary)",
+    transition: "all 150ms ease",
     fontFamily: "var(--font-sans)",
+    textTransform: "capitalize" as const,
   },
   categoryChipActive: {
-    backgroundColor: "var(--primary)",
-    color: "var(--bg-surface)",
-    border: "1px solid var(--primary)",
+    backgroundColor: "var(--color-primary)",
+    color: "var(--text-inverse)",
+    border: "1px solid var(--color-primary)",
   },
   content: {
-    flexGrow: 1,
     minHeight: "300px",
   },
-  // Community cards
+
+  /* Community cards */
   cardGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-    gap: "1.5rem",
+    gap: "1rem",
   },
   communityCard: {
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface)",
     textDecoration: "none",
     color: "inherit",
     display: "flex",
     flexDirection: "column" as const,
-    transition: "all 0.2s ease",
     cursor: "pointer",
     overflow: "hidden",
+    padding: 0,
   },
   cardBanner: {
-    height: "6px",
+    height: "4px",
     width: "100%",
+    borderRadius: "var(--radius-md) var(--radius-md) 0 0",
   },
   cardBody: {
-    padding: "1.5rem",
+    padding: "1.25rem",
     display: "flex",
     flexDirection: "column" as const,
-    gap: "0.75rem",
+    gap: "0.65rem",
     flexGrow: 1,
   },
   cardHeader: {
@@ -525,20 +506,20 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.75rem",
   },
   logoCircle: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "50%",
+    width: "36px",
+    height: "36px",
+    borderRadius: "var(--radius-sm)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
-    fontSize: "1.1rem",
+    fontSize: "var(--text-sm)",
     fontWeight: 700,
     flexShrink: 0,
   },
   cardTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.15rem",
+    fontSize: "var(--text-md)",
     fontWeight: 600,
     margin: 0,
     padding: 0,
@@ -547,12 +528,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   cardSlug: {
     fontFamily: "var(--font-mono)",
-    fontSize: "0.7rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
   cardDescription: {
-    fontSize: "0.9rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-secondary)",
     lineHeight: 1.5,
     margin: 0,
   },
@@ -563,108 +544,97 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: "auto",
     paddingTop: "0.5rem",
   },
-  metaChip: {
-    fontSize: "0.7rem",
-    fontWeight: 600,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
-    padding: "0.2rem 0.5rem",
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-    borderRadius: "2px",
-  },
   metaStat: {
-    fontSize: "0.8rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-tertiary)",
   },
   tagRow: {
     display: "flex",
-    gap: "0.35rem",
+    gap: "0.3rem",
     flexWrap: "wrap" as const,
   },
   tag: {
-    fontSize: "0.7rem",
+    fontSize: "var(--text-xs)",
     padding: "0.15rem 0.4rem",
-    backgroundColor: "var(--bg-surface-hover)",
-    color: "var(--text-muted)",
-    borderRadius: "2px",
-    border: "1px solid var(--border-light)",
+    backgroundColor: "var(--bg-inset)",
+    color: "var(--text-secondary)",
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid var(--border-primary)",
   },
   tagMore: {
-    fontSize: "0.7rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
     padding: "0.15rem 0.3rem",
   },
-  // Proposals
+
+  /* Proposals */
   proposalList: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "1rem",
+    gap: "0.75rem",
   },
   proposalCard: {
     display: "flex",
-    gap: "1.5rem",
-    padding: "1.5rem",
-    border: "1px solid var(--border-color)",
-    backgroundColor: "var(--bg-surface)",
+    gap: "1.25rem",
+    padding: "1.25rem",
     alignItems: "flex-start",
   },
   proposalVoteCol: {
     display: "flex",
     flexDirection: "column" as const,
     alignItems: "center",
-    gap: "0.25rem",
-    minWidth: "50px",
+    gap: "0.2rem",
+    minWidth: "45px",
   },
   voteBtn: {
-    width: "36px",
-    height: "36px",
-    border: "1px solid var(--border-color)",
-    borderRadius: "2px",
+    width: "32px",
+    height: "32px",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "var(--radius-sm)",
     backgroundColor: "var(--bg-surface)",
     cursor: "pointer",
-    fontSize: "1rem",
-    color: "var(--primary)",
+    fontSize: "0.85rem",
+    color: "var(--color-primary)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.15s ease",
+    transition: "all 150ms ease",
     fontFamily: "var(--font-sans)",
   },
   voteCount: {
-    fontSize: "1.25rem",
+    fontSize: "var(--text-lg)",
     fontWeight: 700,
-    color: "var(--text-main)",
+    color: "var(--text-primary)",
   },
   voteLabel: {
-    fontSize: "0.65rem",
+    fontSize: "var(--text-xs)",
     textTransform: "uppercase" as const,
-    color: "var(--text-light)",
-    letterSpacing: "0.04em",
+    color: "var(--text-tertiary)",
+    letterSpacing: "0.03em",
   },
   proposalBody: {
     flex: 1,
     display: "flex",
     flexDirection: "column" as const,
-    gap: "0.5rem",
+    gap: "0.4rem",
   },
   proposalTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.2rem",
+    fontSize: "var(--text-lg)",
     fontWeight: 600,
     margin: 0,
     padding: 0,
     border: "none",
   },
   proposalDesc: {
-    fontSize: "0.9rem",
-    color: "var(--text-muted)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-secondary)",
     lineHeight: 1.5,
     margin: 0,
   },
   proposalMeta: {
     display: "flex",
-    gap: "0.5rem",
+    gap: "0.4rem",
     flexWrap: "wrap" as const,
     marginTop: "0.25rem",
   },
@@ -672,66 +642,82 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     flexDirection: "column" as const,
     alignItems: "flex-end",
-    gap: "0.35rem",
-    minWidth: "120px",
+    gap: "0.3rem",
+    minWidth: "110px",
   },
   progressBarOuter: {
     width: "100%",
-    height: "6px",
-    backgroundColor: "var(--border-light)",
-    borderRadius: "3px",
+    height: "5px",
+    backgroundColor: "var(--bg-inset)",
+    borderRadius: "var(--radius-full)",
     overflow: "hidden",
   },
   progressBarInner: {
     height: "100%",
-    backgroundColor: "var(--primary)",
-    borderRadius: "3px",
+    backgroundColor: "var(--color-primary)",
+    borderRadius: "var(--radius-full)",
     transition: "width 0.3s ease",
   },
   progressLabel: {
-    fontSize: "0.7rem",
-    color: "var(--text-light)",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
     fontFamily: "var(--font-mono)",
   },
-  // Empty states
+
+  /* Empty states */
   emptyState: {
     textAlign: "center" as const,
     padding: "4rem 2rem",
-    border: "1px dashed var(--border-color)",
+    border: "1px dashed var(--border-primary)",
+    borderRadius: "var(--radius-md)",
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "0.75rem",
+  },
+  emptyIcon: {
+    fontSize: "2rem",
+    color: "var(--text-tertiary)",
   },
   emptyTitle: {
     fontFamily: "var(--font-serif)",
-    fontSize: "1.5rem",
-    marginBottom: "0.75rem",
+    fontSize: "var(--text-xl)",
+    margin: 0,
     border: "none",
   },
   emptyText: {
-    color: "var(--text-muted)",
-    fontSize: "0.95rem",
-    maxWidth: "500px",
-    margin: "0 auto",
+    color: "var(--text-tertiary)",
+    fontSize: "var(--text-base)",
+    maxWidth: "400px",
+    margin: 0,
     lineHeight: 1.6,
   },
-  // Footer
+
+  /* Footer */
   footer: {
+    paddingTop: "2rem",
+    paddingBottom: "2rem",
     marginTop: "auto",
-    paddingTop: "2.5rem",
   },
-  footerBorder: {
-    height: "4px",
-    borderTop: "1px solid var(--text-main)",
-    borderBottom: "1px solid var(--text-main)",
-    marginBottom: "0.75rem",
+  footerRule: {
+    height: "1px",
+    backgroundColor: "var(--border-primary)",
+    marginBottom: "1.25rem",
   },
-  footerGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    fontFamily: "var(--font-mono)",
-    fontSize: "0.75rem",
-    color: "var(--text-light)",
-    textTransform: "uppercase" as const,
+  footerInner: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "var(--text-xs)",
+    color: "var(--text-tertiary)",
   },
-  textCenter: {
-    textAlign: "center" as const,
+  footerBrand: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--text-sm)",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+  },
+  footerText: {
+    letterSpacing: "0.02em",
   },
 };

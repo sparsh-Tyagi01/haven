@@ -12,22 +12,16 @@ import (
 	"github.com/sparsh-Tyagi01/haven/backend/internal/config"
 )
 
-// Handler holds dependencies for wiki-related HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new wiki Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Create Wiki Page ─────────────────────────────
-
-// CreateWikiPage handles writing a new wiki article.
-// POST /api/v1/communities/{id}/wiki
 func (h *Handler) CreateWikiPage(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -41,7 +35,6 @@ func (h *Handler) CreateWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify user role is allowed to edit wiki (owner, admin, moderator, expert)
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" && role != "moderator" && role != "expert" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions — only community leaders and experts can modify the wiki"})
@@ -85,10 +78,6 @@ func (h *Handler) CreateWikiPage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, wp)
 }
 
-// ── Update Wiki Page ─────────────────────────────
-
-// UpdateWikiPage increments the version and updates the content of a wiki page.
-// PUT /api/v1/communities/{id}/wiki/{pageId}
 func (h *Handler) UpdateWikiPage(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -104,7 +93,6 @@ func (h *Handler) UpdateWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify permissions
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" && role != "moderator" && role != "expert" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
@@ -146,10 +134,7 @@ func (h *Handler) UpdateWikiPage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, wp)
 }
 
-// ── Get Wiki Page ────────────────────────────────
 
-// GetWikiPage retrieves details of a specific wiki page.
-// GET /api/v1/communities/{slug}/wiki/{pageSlug}
 func (h *Handler) GetWikiPage(w http.ResponseWriter, r *http.Request) {
 	communitySlug := chi.URLParam(r, "slug")
 	pageSlug := chi.URLParam(r, "pageSlug")
@@ -187,7 +172,6 @@ func (h *Handler) GetWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Visibility Guard
 	if visibility != "public" {
 		if userID == "" {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "this community is private"})
@@ -207,10 +191,6 @@ func (h *Handler) GetWikiPage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, wp)
 }
 
-// ── List Wiki Pages ──────────────────────────────
-
-// ListWikiPages returns all wiki pages in a community.
-// GET /api/v1/communities/{slug}/wiki
 func (h *Handler) ListWikiPages(w http.ResponseWriter, r *http.Request) {
 	communitySlug := chi.URLParam(r, "slug")
 	if communitySlug == "" {
@@ -220,7 +200,6 @@ func (h *Handler) ListWikiPages(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Fetch community metadata
 	var communityID string
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -231,7 +210,6 @@ func (h *Handler) ListWikiPages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce membership for private servers
 	if visibility != "public" {
 		if userID == "" {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "this community is private"})
@@ -280,7 +258,6 @@ func (h *Handler) ListWikiPages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, pages)
 }
 
-// ── Helpers ──────────────────────────────────────
 
 func (h *Handler) ensureUniqueSlug(r *http.Request, communityID, slug string) (string, error) {
 	var exists bool

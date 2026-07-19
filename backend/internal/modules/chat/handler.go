@@ -20,12 +20,9 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, tighten this up to match configuration
 		return true
 	},
 }
-
-// Handler holds dependencies for all chat and direct messaging endpoints.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
@@ -33,7 +30,6 @@ type Handler struct {
 	Hub *Hub
 }
 
-// NewHandler creates a new chat Handler and executes the Hub runner.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	hub := NewHub(rdb)
 	go hub.Run()
@@ -46,10 +42,6 @@ func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	}
 }
 
-// ── WebSocket Upgrade Handler ────────────────────
-
-// UpgradeWS upgrades HTTP to real-time WebSockets connection.
-// GET /api/v1/ws?token=...
 func (h *Handler) UpgradeWS(w http.ResponseWriter, r *http.Request) {
 	tokenStr := r.URL.Query().Get("token")
 	if tokenStr == "" {
@@ -61,7 +53,6 @@ func (h *Handler) UpgradeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify JWT
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
@@ -86,7 +77,6 @@ func (h *Handler) UpgradeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Upgrade
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("failed to upgrade websocket connection: %v", err)
@@ -103,18 +93,12 @@ func (h *Handler) UpgradeWS(w http.ResponseWriter, r *http.Request) {
 
 	h.Hub.register <- client
 
-	// Start reading/writing pumps
 	go client.writePump()
 	go client.readPump(h)
 
-	// Set presence status to Online in Redis
 	h.setUserPresence(userID, "online")
 }
 
-// ── REST Chat Endpoints ──────────────────────────
-
-// CreateChannel creates a community chat channel.
-// POST /api/v1/communities/{id}/channels
 func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -128,7 +112,6 @@ func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify permissions (owner, admin, moderator only)
 	role := h.getUserRole(r, userID, communityID)
 	if role != "owner" && role != "admin" && role != "moderator" {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
@@ -162,8 +145,6 @@ func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, c)
 }
 
-// ListChannels returns all channels in a community.
-// GET /api/v1/communities/{slug}/channels
 func (h *Handler) ListChannels(w http.ResponseWriter, r *http.Request) {
 	communitySlug := chi.URLParam(r, "slug")
 	if communitySlug == "" {
@@ -173,7 +154,6 @@ func (h *Handler) ListChannels(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value("userID").(string)
 
-	// Fetch community meta
 	var communityID string
 	var visibility string
 	err := h.db.QueryRowContext(r.Context(),
@@ -225,8 +205,6 @@ func (h *Handler) ListChannels(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, channelsList)
 }
 
-// ListChannelMessages returns message logs of a channel.
-// GET /api/v1/channels/{channelId}/messages
 func (h *Handler) ListChannelMessages(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -240,7 +218,6 @@ func (h *Handler) ListChannelMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify membership on community containing the channel
 	var communityID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT community_id FROM channels WHERE id = $1`, channelID,
@@ -291,8 +268,6 @@ func (h *Handler) ListChannelMessages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, messages)
 }
 
-// ListDirectMessages returns private direct messaging logs.
-// GET /api/v1/direct/messages/{userId}
 func (h *Handler) ListDirectMessages(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -338,8 +313,6 @@ func (h *Handler) ListDirectMessages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, messages)
 }
 
-// ── WebSocket Client Read/Write Pumps ───────────────
-
 func (c *Client) readPump(h *Handler) {
 	log.Printf("[WS client] Starting readPump for user %s", c.UserID)
 	defer func() {
@@ -381,7 +354,6 @@ func (c *Client) readPump(h *Handler) {
 			c.mu.Unlock()
 
 		case "chat:typing":
-			// Broadcast typing state back out
 			var username string
 			h.db.QueryRow(`SELECT username FROM users WHERE id = $1`, c.UserID).Scan(&username)
 			payload := map[string]interface{}{"userId": c.UserID, "username": username}
@@ -404,7 +376,6 @@ func (c *Client) readPump(h *Handler) {
 				chID = &channelIDVal
 				topic = "channel:" + channelIDVal
 
-				// SQL Save
 				var m Message
 				err := h.db.QueryRowContext(context.Background(),
 					`INSERT INTO messages (channel_id, sender_id, content) VALUES ($1, $2, $3)
@@ -416,7 +387,6 @@ func (c *Client) readPump(h *Handler) {
 					continue
 				}
 
-				// Fetch sender meta
 				h.db.QueryRowContext(context.Background(),
 					`SELECT username, COALESCE(display_name, ''), COALESCE(avatar_url, '') FROM users WHERE id = $1`,
 					c.UserID,
@@ -425,7 +395,6 @@ func (c *Client) readPump(h *Handler) {
 				m.ChannelID = chID
 				m.Content = content
 
-				// Broadcast
 				payloadMap := map[string]interface{}{
 					"id":                  m.ID,
 					"channel_id":          m.ChannelID,
@@ -442,9 +411,7 @@ func (c *Client) readPump(h *Handler) {
 			} else if hasRecipient && recipientIDVal != "" {
 				recID = &recipientIDVal
 
-				// We want direct messaging room subscription keys to be matching regardless of sender/receiver.
-				// Lexicographically sorting sender and receiver IDs ensures consistent topic key: "dm:userID1_userID2"
-				topic = "dm:" + recipientIDVal // The payload uses recipient ID directly to inform individual listening clients
+				topic = "dm:" + recipientIDVal
 
 				var m Message
 				err := h.db.QueryRowContext(context.Background(),
@@ -477,7 +444,6 @@ func (c *Client) readPump(h *Handler) {
 					"sender_avatar_url":   m.SenderAvatarURL,
 				}
 
-				// Deliver frame to both recipient's private topic and sender's private topic
 				h.Hub.broadcast <- WSFrame{Event: "chat:message", Topic: "dm:" + recipientIDVal, Payload: payloadMap}
 				h.Hub.broadcast <- WSFrame{Event: "chat:message", Topic: "dm:" + c.UserID, Payload: payloadMap}
 			}
@@ -507,7 +473,6 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
-			// Add queued frames to the same message
 			n := len(c.Send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
@@ -527,7 +492,6 @@ func (c *Client) writePump() {
 	}
 }
 
-// ── Helpers ──────────────────────────────────────
 
 func (h *Handler) getUserRole(r *http.Request, userID, communityID string) string {
 	var role string
@@ -545,7 +509,6 @@ func (h *Handler) setUserPresence(userID, status string) {
 	if h.rdb == nil {
 		return
 	}
-	// Store presence status inside Redis hash keys
 	h.rdb.HSet(context.Background(), "haven:presence", userID, status)
 	h.rdb.Publish(context.Background(), "haven:chat", map[string]interface{}{
 		"event": "presence:update",

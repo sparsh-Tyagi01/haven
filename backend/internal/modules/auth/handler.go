@@ -19,22 +19,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Handler holds dependencies for auth-related HTTP handlers.
 type Handler struct {
 	db  *sql.DB
 	rdb *redis.Client
 	cfg *config.Config
 }
 
-// NewHandler creates a new auth Handler.
 func NewHandler(db *sql.DB, rdb *redis.Client, cfg *config.Config) *Handler {
 	return &Handler{db: db, rdb: rdb, cfg: cfg}
 }
 
-// ── Register ─────────────────────────────────────
-
-// Register creates a new user account.
-// POST /api/v1/auth/register
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -47,7 +41,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash the password
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("error hashing password: %v", err)
@@ -55,7 +48,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert user
 	var user UserProfile
 	err = h.db.QueryRowContext(r.Context(),
 		`INSERT INTO users (username, email, password_hash, display_name)
@@ -77,7 +69,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate tokens
 	resp, err := h.generateTokenPair(r, &user)
 	if err != nil {
 		log.Printf("error generating tokens: %v", err)
@@ -88,10 +79,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
-// ── Login ────────────────────────────────────────
-
-// Login authenticates a user and returns JWT tokens.
-// POST /api/v1/auth/login
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -104,7 +91,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch user by email
 	var user UserProfile
 	var passwordHash string
 	err := h.db.QueryRowContext(r.Context(),
@@ -126,13 +112,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
 		return
 	}
 
-	// Generate tokens
 	resp, err := h.generateTokenPair(r, &user)
 	if err != nil {
 		log.Printf("error generating tokens: %v", err)
@@ -140,17 +124,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Store session in Redis
 	sessionKey := fmt.Sprintf("session:%s", user.ID)
 	h.rdb.Set(r.Context(), sessionKey, resp.AccessToken, h.cfg.JWTRefreshTokenExpiry)
 
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// ── Refresh Token ────────────────────────────────
-
-// RefreshToken issues a new access token using a valid refresh token.
-// POST /api/v1/auth/refresh
 func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -163,7 +142,6 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash the provided token and look it up in the database
 	tokenHash := hashToken(req.RefreshToken)
 	var userID string
 	var expiresAt time.Time
@@ -188,11 +166,9 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Revoke the old token (token rotation)
 	h.db.ExecContext(r.Context(),
 		`UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1`, tokenHash)
 
-	// Fetch user profile
 	var user UserProfile
 	err = h.db.QueryRowContext(r.Context(),
 		`SELECT id, username, email, display_name, bio, avatar_url, banner_url, website, skills, reputation, privacy, created_at
@@ -208,7 +184,6 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate new token pair
 	resp, err := h.generateTokenPair(r, &user)
 	if err != nil {
 		log.Printf("error generating tokens: %v", err)
@@ -219,19 +194,13 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// ── Logout ───────────────────────────────────────
-
-// Logout revokes the user's session.
-// POST /api/v1/auth/logout
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	// Try to get user ID from the JWT if present
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		writeJSON(w, http.StatusOK, map[string]string{"message": "logged out"})
 		return
 	}
 
-	// Parse token to get user ID (best-effort, don't fail on invalid tokens)
 	tokenString := authHeader
 	if len(authHeader) > 7 {
 		tokenString = authHeader[7:]
@@ -244,11 +213,9 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if token != nil {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			if userID, ok := claims["user_id"].(string); ok {
-				// Delete session from Redis
 				sessionKey := fmt.Sprintf("session:%s", userID)
 				h.rdb.Del(r.Context(), sessionKey)
 
-				// Revoke all refresh tokens for this user
 				h.db.ExecContext(r.Context(),
 					`UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`, userID)
 			}
@@ -258,10 +225,6 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "logged out"})
 }
 
-// ── Get Profile ──────────────────────────────────
-
-// GetProfile retrieves a public user profile by username.
-// GET /api/v1/users/profile/{username}
 func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 	if username == "" {
@@ -289,7 +252,6 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If profile is hidden, only return for the owner
 	if user.Privacy == "hidden" {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
 		return
@@ -298,10 +260,6 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-// ── Update Profile ───────────────────────────────
-
-// UpdateProfile updates the authenticated user's profile.
-// PUT /api/v1/users/profile
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(string)
 	if !ok || userID == "" {
@@ -315,7 +273,6 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build dynamic UPDATE query
 	query := "UPDATE users SET updated_at = NOW()"
 	args := []interface{}{}
 	argIdx := 1
@@ -375,12 +332,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-// ── Helpers ──────────────────────────────────────
-
-// generateTokenPair creates an access token (JWT) and a refresh token,
-// storing the refresh token hash in the database.
 func (h *Handler) generateTokenPair(r *http.Request, user *UserProfile) (*AuthResponse, error) {
-	// Access Token
 	accessClaims := jwt.MapClaims{
 		"user_id":  user.ID,
 		"username": user.Username,
@@ -393,7 +345,6 @@ func (h *Handler) generateTokenPair(r *http.Request, user *UserProfile) (*AuthRe
 		return nil, fmt.Errorf("failed to sign access token: %w", err)
 	}
 
-	// Refresh Token (opaque random string)
 	refreshBytes := make([]byte, 32)
 	if _, err := rand.Read(refreshBytes); err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
@@ -402,7 +353,6 @@ func (h *Handler) generateTokenPair(r *http.Request, user *UserProfile) (*AuthRe
 	refreshTokenHash := hashToken(refreshTokenString)
 	expiresAt := time.Now().Add(h.cfg.JWTRefreshTokenExpiry)
 
-	// Store in database
 	_, err = h.db.ExecContext(r.Context(),
 		`INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
 		user.ID, refreshTokenHash, expiresAt,
@@ -419,21 +369,18 @@ func (h *Handler) generateTokenPair(r *http.Request, user *UserProfile) (*AuthRe
 	}, nil
 }
 
-// hashToken creates a SHA-256 hash of a token string for secure storage.
 func hashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(h[:])
 }
 
-// isUniqueViolation checks if a PostgreSQL error is a unique constraint violation.
 func isUniqueViolation(err error) bool {
 	if pqErr, ok := err.(*pq.Error); ok {
-		return pqErr.Code == "23505" // unique_violation
+		return pqErr.Code == "23505"
 	}
 	return false
 }
 
-// writeJSON encodes the given payload as JSON and writes it to the response.
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

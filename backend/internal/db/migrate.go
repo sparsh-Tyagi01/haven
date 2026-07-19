@@ -10,16 +10,13 @@ import (
 	"strings"
 )
 
-// RunMigrations reads all .sql files from the migrations directory and executes them
-// in sorted order. This is a simple forward-only migration runner suitable for development.
-// For production, consider using a tool like golang-migrate or goose.
+
 func RunMigrations(db *sql.DB, migrationsDir string) error {
 	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
 		return fmt.Errorf("failed to read migrations directory: %w", err)
 	}
 
-	// Collect and sort migration files
 	var files []string
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
